@@ -38,6 +38,6 @@ Assistant Scientist
 [Hallie Eilerts-Spinelli](https://publichealth.jhu.edu/faculty/4505/hallie-eilerts-spinelli), PhD  
 Assistant Scientist
 
-Department of International Health
-Global Disease Epidemiology and Control
+Department of International Health  
+Global Disease Epidemiology and Control  
 Johns Hopkins Bloomberg School of Public Health
