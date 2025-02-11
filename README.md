@@ -29,10 +29,10 @@ Please get in touch with the instructors in advance if you anticipate issues wit
 
 Best of luck!
 
-[Nadia Akseer](https://publichealth.jhu.edu/faculty/4062/nadia-akseer), PhD
+[Nadia Akseer](https://publichealth.jhu.edu/faculty/4062/nadia-akseer), PhD  
 Associate Scientist
 
-[Emily Keats](https://publichealth.jhu.edu/faculty/4646/emily-keats), PhD
+[Emily Keats](https://publichealth.jhu.edu/faculty/4646/emily-keats), PhD  
 Assistant Scientist
 
 [Hallie Eilerts-Spinelli](https://publichealth.jhu.edu/faculty/4505/hallie-eilerts-spinelli), PhD  
