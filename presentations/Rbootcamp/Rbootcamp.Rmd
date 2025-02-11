@@ -1,0 +1,484 @@
+---
+title: "R Bootcamp"
+author: | 
+  | Hallie Eilerts-Spinelli
+  | \texttt{\href{mailto:heilert1@jh.edu}{heilert1@jh.edu}}
+  | Johns Hopkins Bloomberg School of Public Health
+  | Applied Data Analysis
+date: "March 2025"
+output: 
+   beamer_presentation:
+    keep_tex: true
+    latex_engine: xelatex
+    highlight: espresso
+    toc: true
+header-includes:
+  - \input{myheader.tex}
+colorlinks: true
+urlcolor: JHBlue
+linkcolor: HeritageBlue
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+options(tinytex.verbose = TRUE)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+```
+
+## R introduction
+
+-   Why R?
+    -   Free, open-source
+        -   the software source code is available and may be redistributed and modified
+    -   Provides broad spectrum of statistical and graphical techniques with a wide range of applications
+        -   This presentation was made in R!
+    -   Large community of R users
+    -   Reproducibility
+-   R vs. RStudio
+    -   R is a statistical programming language
+    -   RStudio is an editor, user-friendly graphical interface
+-   Drawbacks
+    -   Learning curve
+    -   Many ways to do the same thing
+
+## Instructions for downloading R and RStudio
+
+Download R from <https://www.r-project.org/>
+
+Download RStudio from <https://posit.co/downloads/>
+
+More instructions: <https://datacarpentry.github.io/r-socialsci/>
+
+## Basics
+
+The simplest usage of R is as a calculator. You can get output from R simply by typing math in the console:
+
+```{r}
+3 + 5
+```
+
+R can be used to store the results of calculations and many other kinds of objects.
+
+```{r}
+foo <- 2
+foo
+```
+
+You can then use those objects in other operations.
+
+```{r}
+foo*8
+```
+
+## Scripts
+
+The commands you type in the console will be forgotten when you close the session.
+
+For your code and workflow to be reproducible, type commands in the script editor and save it.
+
+RStudio allows you to execute commands directly from the script editor by using the \textcolor{JHAccentRed}{\tt Ctrl} + \textcolor{JHAccentRed}{\tt Enter} shortcut (on Mac, \textcolor{JHAccentRed}{\tt Cmd} + \textcolor{JHAccentRed}{\tt Return}).
+
+## Functions (I)
+
+Most of the work in R is done through functions. There are many functions already implemented in base R (i.e., we do not need to load a package to use them).
+
+Function \textcolor{JHAccentRed}{\tt c()} concatenates values into a vector.
+
+```{r}
+myVec <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+myVec
+```
+
+Function \textcolor{JHAccentRed}{\tt sum()} returns the sum of all present in its arguments.
+
+```{r}
+sum(myVec)
+```
+
+## Functions (II)
+
+\footnotesize
+
+How do you know how use a function? How do you know what arguments it will accept?
+
+-   Search the function in the **Help** pane
+-   Type `help("[function name]")` in the console
+-   Type `?[function name]` in the console
+-   Type `example("[function name]")` in the console
+-   Google it!
+
+If a function is not working...
+
+```{r}
+problematicVec <- c(7, NA, 4, 2, NA)
+sum(problematicVec)
+```
+
+...check the documentation and troubleshoot.
+
+```{r}
+sum(problematicVec, na.rm = TRUE)
+```
+
+## Functions (III)
+
+\footnotesize
+
+We can also define our own bespoke functions. Here is a simple one:
+
+```{r}
+addValues <- function(x,y){x+y}
+addValues(3,4)
+```
+
+**If the same operations need to be repeated throughout your project, it is much better to use functions than copying and pasting your code.**
+
+Save these in a file called \textcolor{JHAccentRed}{\tt util} or \textcolor{JHAccentRed}{\tt functions} that gets sourced at the top of any script they are used in.
+
+\centering
+![](figures/loading-functions.jpg){width="250px"}
+
+## Functions (IV)
+
+\tiny
+
+Example of a complicated function that will make your life easier if it needs to be called multiple times.
+
+```{r}
+fitGLMmodel <- function(df, covariate_metadata) {
+
+  training_data <- df %>%
+    ungroup() %>%
+    mutate(
+      year1 = year - 1980,
+      year2 = year1*year1
+    ) %>%
+    select(any_of(c("value_raw", "year", "year1", "year2", "gdp", "sex", "country")))
+  
+  # GLM regression
+  fit <- glm(formula = covariate_metadata$glm_formula,
+             data = training_data,
+             family = covariate_metadata$glm_family,
+             na.action = na.omit)
+
+  # Save information about the fit
+  capture.output(anova(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_anova.txt"))
+  capture.output(confint(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_confint.txt"))
+  capture.output(summary(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_summary.txt"))
+  
+  # Append fitted data to input frame
+  value_glm = as_tibble(predict(fit, newdata=training_data, type="response")) %>% rename(value_glm=value)
+  result <- cbind(df, value_glm)
+  
+  # Plot fit
+  ggplot(result %>% filter(!is.na(value_raw)), aes(x = value_raw, y = value_glm)) + geom_point()
+  ggsave(str_glue("./gen/{covariate_metadata$name}/audit/glm_fit.png"), width = 14, height = 14)
+  
+  return(result)
+}
+```
+
+## Packages
+
+R packages are extensions to the programming language. They contain code, data, and documentation.
+
+Packages can be downloaded from the internet by typing in the console:
+
+```{r, eval = FALSE}
+install.packages("package_name")
+```
+
+Once a package is installed on your computer, you do not need to install it again. However, you need to load it every time you start a new R session.
+
+```{r, eval = FALSE}
+library("package_name")
+```
+
+
+## Popular packages
+
+-   Loading data
+    -   `xlsx`: allows for reading xls/xlsx spreadsheets into R
+    -   `haven`: allows for reading SAS, SPSS, and Stata files into R
+-   Data manipulation
+    -   `tidyr`: gather, spread, putting data in [tidy format](file:///C:/Users/HEilerts/Downloads/v59i10.pdf)
+    -   `dplyr`: subsetting, summarizing, joining
+    -   `data.table`: data management, useful for big data
+    -   `purrr`: tools for working with functions and vectors
+    -   `lubridate`: tools that make it easier to work with dates
+    -   `stringr`: tools for parsing strings
+-   Modeling
+    -   `car`: tools for regression analysis
+    -   `mgcv`: generalized additive models
+    -   `survival`: tools for survival analysis
+-   Visualization and reporting results
+    -   `ggplot2`: customizable graphics and plots
+    -   `knitr`, `flextable`, `xtable`: generate output tables for html, Word, pdfs, \LaTeX
+
+
+## `Base` vs `tidyverse` vs `data.table` (I)
+
+\small
+
+These packages represent three different paradigms in R programming used primarily for data manipulation, analysis, and visualization.
+
+Choosing between them means deciding which toolset you want to use for your data tasks, based on factors like ease of use, performance, and personal or project requirements.
+
+\centering
+
+\scriptsize
+
+```{r, echo = FALSE, results="asis"}
+
+# Create the data frame for the table
+comparison_table <- data.frame(
+  Feature = c(
+    "Ease of Use", "Performance", "Readability", "Flexibility", "Memory Usage",
+    "Dependencies", "Community", "Learning Curve", "Strengths", "Weaknesses"
+  ),
+  Base_R = c(
+    "Familiar to R users but can be verbose.",
+    "Adequate for small datasets.",
+    "Can be less readable for complex tasks.",
+    "Built-in functions for most tasks.",
+    "Moderate, can struggle with larger datasets.",
+    "No external packages required.",
+    "Core R support with extensive resources.",
+    "Moderate, procedural style.",
+    "Versatile, minimal dependencies.",
+    "Verbose, less efficient for big data."
+  ),
+  Tidyverse = c(
+    "Intuitive and user-friendly syntax.",
+    "Decent for small, medium datasets.",
+    "Highly readable and beginner-friendly.",
+    "Excellent for tidy data workflows.",
+    "Higher due to temporary objects.",
+    "Requires multiple packages (e.g., `dplyr`).",
+    "Large and active.",
+    "Low, declarative and pipeline-based.",
+    "Simplifies common workflows, consistent.",
+    "Slower with large datasets, higher memory."
+  ),
+  data_table = c(
+    "Concise but steep learning curve.",
+    "Extremely fast for large datasets.",
+    "Compact but may sacrifice readability.",
+    "Great for advanced joins and aggregations.",
+    "Optimized for low memory usage.",
+    "Requires one package (`data.table`).",
+    "Smaller but growing.",
+    "High, unique syntax.",
+    "High performance, large data handling.",
+    "Less intuitive for beginners."
+  )
+)
+# Render the table with kable
+knitr::kable(comparison_table, format = "latex", col.names = c("Feature", "Base R", "Tidyverse", "data.table")) %>%
+  kableExtra::row_spec(0, bold = TRUE) %>%  # Bold the first row (header)
+  kableExtra::kable_styling(latex_options = "scale_down")
+```
+
+
+## `Base` vs `tidyverse` vs `data.table` (II)
+
+\centering
+
+![](figures/base-tidy-dt-functions.jpg){width="350px"} \tiny <https://mgimond.github.io/rug_2019_12/Index.html>
+
+## Loops
+
+Loops allow you to repeat a block of code multiple times.
+
+\centering
+
+![](figures/for-vs-while-loop.jpg){width="350px"}
+
+## When to loop? (I)
+
+\scriptsize
+
+1. sequential dependencies
+
+    -   \scriptsize when the current iteration depends on the result of the previous
+ 
+\tiny
+\vspace{1em}
+  
+```{r, eval = FALSE}
+result[1] <- 3
+for(i in 2:10){
+  result[i] <- result[i - 1] + i
+}
+```
+
+\scriptsize
+
+2. modifying external objects, writing files
+
+\tiny
+\vspace{1em}
+
+```{r, eval = FALSE}
+for (i in 1:5) {
+    plot(1:10, (1:10)^i, main = paste("Exponent:", i))
+    ggsave(paste0("plot_", i, ".png"))
+}
+```
+
+\scriptsize
+
+3. interfacing with external systems
+
+    -   \scriptsize querying a database, making API calls that don't support parallel or batch processing
+
+## When to loop? (II)
+
+\scriptsize
+
+4. complex logic or conditions
+
+    -   \scriptsize if/else conditions or nested logic for when to execute the action
+
+5. debugging
+
+    -   \scriptsize running the same operation on lots of data and identifying that element that trips up your code
+
+6. performance doesn't matter
+
+    -   \scriptsize simple operation prioritizing readability over speed
+
+## Vectorized operations
+
+\scriptsize
+
+A programming technique that performs multiple operations at once instead of using loops to repeat operations one at a time.
+
+\vspace{1em}
+
+```{r}
+x <- c(4, 9, 16)
+sqrt(x)
+```
+
+\vspace{1em}
+
+```{r}
+x <- c(1, 2, 3)
+y <- c(4, 5, 6)
+x + y
+```
+
+Alternatively, as a loop...
+
+```{r, eval = FALSE}
+x <- c(1, 2, 3)
+y <- c(4, 5, 6)
+z <- c()
+for(i in 1:length(x)){
+  z[i] <- x[i] + y[i]
+}
+```
+
+## The "apply family" (R) (I)
+
+\scriptsize
+
+A family of functions in base R that perform operations on elements like vectors, matrices, data frames, and lists in a more concise way than writing loops.
+
+`apply` operates over rows or columns of a matrix, returns a vector
+
+\tiny
+
+```{r}
+# construct a 5 x 6 matrix
+my_matrix <- matrix(1:30, nrow = 5, ncol = 6)
+
+# calculate the sum of each column
+apply(my_matrix, 2, sum)
+```
+
+\scriptsize
+
+`sapply` operates over a vector or list, returns a vector
+
+\tiny
+
+```{r}
+# example list of character vectors
+char_list <- list(
+  animals = c("cat", "dog", "elephant"),
+  fruits = c("apple", "banana"),
+  colors = c("red", "blue", "green", "yellow")
+)
+
+# calculate the length of each element in the list
+sapply(char_list, length)
+```
+
+
+## `lapply`
+
+\scriptsize
+
+`lapply` operates over a vector or list and returns a list. It is extremely useful for working with multiple surveys with a standard format.
+
+\vspace{1em}
+
+\tiny
+
+```{r, eval = FALSE}
+# define function to clean individual recode data from DHS surveys
+fn_cleanIR <- function(x){
+  
+  x$weight <- x$v005/1000000
+  
+  if("v024" %in% names(x)){
+    x$region_name <- haven::as_factor(x$v024)
+  }else{
+    x$region_name <- haven::as_factor(x$v101)
+  }
+  
+  # trim white space
+  x$myvcal1 <- as.character(x$vcal_1)
+  # recode strings with non-alphanumeric characters as NA
+  x$myvcal1 <- ifelse(grepl("[^a-zA-Z0-9[:space:]]", x$myvcal1), NA, x$myvcal1)
+  
+  return(x)
+}
+
+# clean datasets stored in list
+l_ir_clean <- lapply(l_ir, fn_cleanIR)
+```
+
+
+## RStudio projects
+
+-   Keep all the files associated with a given project together
+    -   Input data, scripts, analytical results, and figures
+-   *File* \> *New Project*
+    -   *File* \> *New File* \> *R Script*
+-   When an R project is opened within RStudio...
+    -   A new R session is started
+    -   The current working directory is set to the project directory
+    -   Previously edited documents are restored
+    -   RStudio settings are restored
+-   Version control
+    -   Projects can be connected to a version control repository on Github
+
+## R Markdown
+
+\footnotesize
+
+R Markdown is a flexible type of document that integrates R code with Markdown (like this presentation). 
+
+It allows you to seamlessly combine executable R code and its output with text, and can be readily converted to formats like PDF, Word, and HTML. Widely used for statistical analysis, reporting, and sharing reproducible research.
+
+The `rmarkdown` package comes pre-installed with RStudio.
+
+-   *File* \> *New File* \> *R Markdown*
+
+[R Markdown cheat sheet](https://rstudio.github.io/cheatsheets/html/rmarkdown.html)
+

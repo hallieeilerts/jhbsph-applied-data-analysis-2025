@@ -1,0 +1,144 @@
+---
+title: "4 - Data exploration and descriptive analyses "
+author: | 
+  | Hallie Eilerts-Spinelli
+  | \texttt{\href{mailto:heilert1@jh.edu}{heilert1@jh.edu}}
+  | Johns Hopkins Bloomberg School of Public Health
+  | Applied Data Analysis
+date: "March 2025"
+output: 
+   beamer_presentation:
+    keep_tex: true
+    latex_engine: xelatex
+    highlight: espresso
+    toc: true
+header-includes:
+  - \input{myheader.tex}
+colorlinks: true
+urlcolor: JHBlue
+linkcolor: HeritageBlue
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+options(tinytex.verbose = TRUE)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+```
+
+# Introduction
+
+
+## Motivation
+
+## Agenda
+
+1. Data exploration
+ - unit of analysis
+ - data types
+ - missing values
+ - outlier detection
+2. Data cleaning
+ - operationalizing variables
+ - de-duplication
+ - imputation
+3. Data wrangling
+ - merging
+ - reshaping
+ - keys
+4. Describing data
+ - summary statistics
+ - basic visualizations
+
+# Data exploration
+
+
+## Example Data
+
+\footnotesize
+
+The \textcolor{JHMauve}{SAFI} (Studying African Farmer-Led Irrigation) Teaching Database, available on [FigShare](https://figshare.com/articles/SAFI_Survey_Results/6262019)
+
+This is survey data relating to households and agriculture in Tanzania and Mozambique. The survey data was collected through interviews conducted between November 2016 and June 2017. This is a teaching version of the collected data; it is not the full dataset. The survey covered such things as; household features, agricultural practices, assets. and details about the household members.
+
+\tiny
+
+Woodhouse, Philip; Veldwisch, Gert Jan; Brockington, Daniel; Komakech, Hans C.; Manjichi, Angela; Venot, Jean-Philippe (2018): SAFI Survey Results. <doi:10.6084/m9.figshare.6262019.v1>
+
+## Common questions we can ask
+
+What are columns in the data? Do values in these columns seem complete? Do they all make sense? Are they properly encoded? What are common columns across (multiple) files (potential for merging!) What uniquely defines a row?
+
+<https://dprep.hannesdatta.com/docs/modules/week4/tutorial/tutorial#/6>
+
+
+## Unit of analysis
+
+```         
+Unit of analysis: Refers to the specific entity or level of observation at which you analyze data
+
+Why is it important? It determines how you aggregate, summarize, and interpret your data. Without knowing your unit of analysis – at each part of your project – you will likely get lost.
+
+Example: The episodes and rating data is organized along the individual episode-level. Using the column parentTconst in datasets[[1]], you could aggregate this data to another unit of analysis: the series level.
+```
+
+<https://dprep.hannesdatta.com/docs/modules/week2/tutorial/tutorial#/25>
+
+## Verifying data types
+
+```         
+class(mobility$date)
+Can only calculate with dates when they are actual dates!
+```
+
+## Missing values
+
+## Outlier detection
+
+
+# Data cleaning
+
+
+## Operationalizing variables
+
+-   Standardize naming conventions to ensure uniqueness, improve clarity
+-   Find a compromise between length and clarity
+
+## De-duplication
+
+
+## Imputation
+
+# Data wrangling
+
+
+## Merging
+
+## Reshaping
+
+## Keys
+
+general keys, primary, foreign
+
+example with data table
+
+# Describing data
+
+
+## Summary statistics
+
+```         
+We can generate summary statistics using the summary() command.
+    do values make sense?
+    are there any missing values?
+We can also zoom in on specific columns
+    let's start making sense of the retail_and_recreation_percent_change_from_baseline variable: what does it mean?
+    let's plot this variable over time!
+If our target unit of analysis is different from the unit of analysis in the current data set, we can also use aggregation.
+```
+
+## Basic visualizations
+
+
+
