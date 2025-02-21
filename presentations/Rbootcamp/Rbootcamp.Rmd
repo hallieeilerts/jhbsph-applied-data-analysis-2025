@@ -27,6 +27,8 @@ library(kableExtra)
 library(tidyr)
 ```
 
+# Introduction
+
 ## R introduction
 
 -   Why R?
@@ -79,106 +81,6 @@ The commands you type in the console will be forgotten when you close the sessio
 For your code and workflow to be reproducible, type commands in the script editor and save it.
 
 RStudio allows you to execute commands directly from the script editor by using the \textcolor{JHAccentRed}{\tt Ctrl} + \textcolor{JHAccentRed}{\tt Enter} shortcut (on Mac, \textcolor{JHAccentRed}{\tt Cmd} + \textcolor{JHAccentRed}{\tt Return}).
-
-## Functions (I)
-
-Most of the work in R is done through functions. There are many functions already implemented in base R (i.e., we do not need to load a package to use them).
-
-Function \textcolor{JHAccentRed}{\tt c()} concatenates values into a vector.
-
-```{r}
-myVec <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-myVec
-```
-
-Function \textcolor{JHAccentRed}{\tt sum()} returns the sum of all present in its arguments.
-
-```{r}
-sum(myVec)
-```
-
-## Functions (II)
-
-\footnotesize
-
-How do you know how use a function? How do you know what arguments it will accept?
-
--   Search the function in the **Help** pane
--   Type `help("[function name]")` in the console
--   Type `?[function name]` in the console
--   Type `example("[function name]")` in the console
--   Google it!
-
-If a function is not working...
-
-```{r}
-problematicVec <- c(7, NA, 4, 2, NA)
-sum(problematicVec)
-```
-
-...check the documentation and troubleshoot.
-
-```{r}
-sum(problematicVec, na.rm = TRUE)
-```
-
-## Functions (III)
-
-\footnotesize
-
-We can also define our own bespoke functions. Here is a simple one:
-
-```{r}
-addValues <- function(x,y){x+y}
-addValues(3,4)
-```
-
-**If the same operations need to be repeated throughout your project, it is much better to use functions than copying and pasting your code.**
-
-Save these in a file called \textcolor{JHAccentRed}{\tt util} or \textcolor{JHAccentRed}{\tt functions} that gets sourced at the top of any script they are used in.
-
-\centering
-![](figures/loading-functions.jpg){width="250px"}
-
-## Functions (IV)
-
-\tiny
-
-Example of a complicated function that will make your life easier if it needs to be called multiple times.
-
-```{r}
-fitGLMmodel <- function(df, covariate_metadata) {
-
-  training_data <- df %>%
-    ungroup() %>%
-    mutate(
-      year1 = year - 1980,
-      year2 = year1*year1
-    ) %>%
-    select(any_of(c("value_raw", "year", "year1", "year2", "gdp", "sex", "country")))
-  
-  # GLM regression
-  fit <- glm(formula = covariate_metadata$glm_formula,
-             data = training_data,
-             family = covariate_metadata$glm_family,
-             na.action = na.omit)
-
-  # Save information about the fit
-  capture.output(anova(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_anova.txt"))
-  capture.output(confint(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_confint.txt"))
-  capture.output(summary(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_summary.txt"))
-  
-  # Append fitted data to input frame
-  value_glm = as_tibble(predict(fit, newdata=training_data, type="response")) %>% rename(value_glm=value)
-  result <- cbind(df, value_glm)
-  
-  # Plot fit
-  ggplot(result %>% filter(!is.na(value_raw)), aes(x = value_raw, y = value_glm)) + geom_point()
-  ggsave(str_glue("./gen/{covariate_metadata$name}/audit/glm_fit.png"), width = 14, height = 14)
-  
-  return(result)
-}
-```
 
 ## Packages
 
@@ -288,6 +190,204 @@ knitr::kable(comparison_table, format = "latex", col.names = c("Feature", "Base 
 
 ![](figures/base-tidy-dt-functions.jpg){width="350px"} \tiny <https://mgimond.github.io/rug_2019_12/Index.html>
 
+
+# Coding style
+
+## Coding style
+
+\small
+
+If your code is messy, it's hard to be confident in your results. Messy code also be difficult to understand, debug, and tweak (especially when you come back to it a few weeks/months later!).
+
+\vspace{1em}
+
+**Using a consistent coding style throughout your project is important for clarity and quality control.**
+
+\vspace{1em}
+
+Find a style guide and stick to it. Examples:
+
+-   [Advanced-R Styleguide](http://adv-r.had.co.nz/Style.html)
+-   [Google's R Styleguide](https://google.github.io/styleguide/Rguide.html)
+
+## Case types
+
+\footnotesize
+
+Use case types to improve readability.
+
+*  `camelCase`
+*  `snake_case`
+*  `PascalCase`
+*  `kebab-case`
+
+Be consistent in usage. For example...
+
+```{r, eval = FALSE}
+# variables in PascalCase
+AdjFac
+# tabular data structures in camelCase
+dat
+datLong
+datWide
+# functions in snake_case
+make_box_plot()
+# save outputs in kebab-case
+survey-sample-females.csv
+```
+
+## Variable types
+
+\footnotesize
+
+Can also use variable type as a prefix. This can improve clarity, but also more verbose.
+
+```{r, eval = FALSE}
+df_results   # data frame of results
+l_results    # list of results
+v_countries  # vector of country names
+fn_makeBoxPlot() # custom function for making box plot
+```
+
+## Coding syntax
+
+-   Use two spaces per level of indentation
+-   Put spaces around operators (e.g., +, -, \*), after commas
+-   An opening curly brace is never on it's own line, but a closing curly brace always is
+-   Use `<-` when assigning values to variables in R
+    -   Reserve `=` for argument passing in functions
+-   Useful [RStudio addin](https://www.r-bloggers.com/2016/10/align-assign-rstudio-addin-to-align-assignment-operators/) that helps align code neatly
+
+## Organization
+
+\footnotesize
+
+-   Load packages at the top of script
+-   Comment your code!
+-   Organize code into blocks to accomplish a single goal, describe that goal in comment
+-   Use in-line comments sparingly
+-   Adopt a file header that is included in every script and allows it to be interpreted on its own
+
+\vspace{1em}
+
+\tiny
+
+```{r, eval = FALSE}
+################################################################################
+# @project Example Project
+# @description This file is responsible for cleaning column names
+# @return Data frame with cleaned column names
+################################################################################
+```
+
+\centering
+
+[kmishra9 best practices](https://github.com/kmishra9/Best-Practices-for-Writing-R-Code)
+
+# Functions
+
+## Functions (I)
+
+Most of the work in R is done through functions. There are many functions already implemented in base R (i.e., we do not need to load a package to use them).
+
+Function \textcolor{JHAccentRed}{\tt c()} concatenates values into a vector.
+
+```{r}
+myVec <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+myVec
+```
+
+Function \textcolor{JHAccentRed}{\tt sum()} returns the sum of all present in its arguments.
+
+```{r}
+sum(myVec)
+```
+
+## Functions (II)
+
+\footnotesize
+
+How do you know how use a function? How do you know what arguments it will accept?
+
+-   Search the function in the **Help** pane
+-   Type `help("[function name]")` in the console
+-   Type `?[function name]` in the console
+-   Type `example("[function name]")` in the console
+-   Google it!
+
+If a function is not working...
+
+```{r}
+problematicVec <- c(7, NA, 4, 2, NA)
+sum(problematicVec)
+```
+
+...check the documentation and troubleshoot.
+
+```{r}
+sum(problematicVec, na.rm = TRUE)
+```
+
+## Functions (III)
+
+\footnotesize
+
+We can also define our own bespoke functions. Here is a simple one:
+
+```{r}
+addValues <- function(x,y){x+y}
+addValues(3,4)
+```
+
+**If the same operations need to be repeated throughout your project, it is much better to use functions than copying and pasting your code.**
+
+Save these in a file called \textcolor{JHAccentRed}{\tt util} or \textcolor{JHAccentRed}{\tt functions} that gets sourced at the top of any script they are used in.
+
+\centering
+![](figures/loading-functions.jpg){width="250px"}
+
+## Functions (IV)
+
+\tiny
+
+Example of a complicated function that will make your life easier if it needs to be called multiple times.
+
+```{r}
+fitGLMmodel <- function(df, covariate_metadata) {
+
+  training_data <- df %>%
+    ungroup() %>%
+    mutate(
+      year1 = year - 1980,
+      year2 = year1*year1
+    ) %>%
+    select(any_of(c("value_raw", "year", "year1", "year2", "gdp", "sex", "country")))
+  
+  # GLM regression
+  fit <- glm(formula = covariate_metadata$glm_formula,
+             data = training_data,
+             family = covariate_metadata$glm_family,
+             na.action = na.omit)
+
+  # Save information about the fit
+  capture.output(anova(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_anova.txt"))
+  capture.output(confint(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_confint.txt"))
+  capture.output(summary(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_summary.txt"))
+  
+  # Append fitted data to input frame
+  value_glm = as_tibble(predict(fit, newdata=training_data, type="response")) %>% rename(value_glm=value)
+  result <- cbind(df, value_glm)
+  
+  # Plot fit
+  ggplot(result %>% filter(!is.na(value_raw)), aes(x = value_raw, y = value_glm)) + geom_point()
+  ggsave(str_glue("./gen/{covariate_metadata$name}/audit/glm_fit.png"), width = 14, height = 14)
+  
+  return(result)
+}
+```
+
+# Loops
+
 ## Loops
 
 Loops allow you to repeat a block of code multiple times.
@@ -349,6 +449,8 @@ for (i in 1:5) {
 6. performance doesn't matter
 
     -   \scriptsize simple operation prioritizing readability over speed
+
+# Vectorized operations
 
 ## Vectorized operations
 
@@ -453,6 +555,7 @@ fn_cleanIR <- function(x){
 l_ir_clean <- lapply(l_ir, fn_cleanIR)
 ```
 
+# Other R applications
 
 ## RStudio projects
 
