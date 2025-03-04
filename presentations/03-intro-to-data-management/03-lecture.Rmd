@@ -48,19 +48,17 @@ If you're not careful, this disorganization may seep into your analysis, comprom
 
 ## Agenda
 
-1.  Directory structure
-2.  Workflow
-3.  Introduction to data management
+1.  Setting up a project
+2.  Research workflow
+3.  Data exploration
 
-
-
-# Directory structure
+# Setting up a project
 
 ## Directory structure (I)
 
 \scriptsize
 
-Before you start working with data, you should decide how you will structure and name files and folders. Ensuring that data, code, and results are systematically arranged makes it easier to conduct analysis, debug, and collaborate.
+Before you start working with data, you should decide how you will structure files and folders. Ensuring that data, code, and results are systematically arranged makes it easier to conduct analysis, debug, and collaborate.
 
 \textcolor{JHOrange}{Basic project structure organized by file type.}
 
@@ -87,11 +85,25 @@ project
  |    
 ```
 
+\begin{tikzpicture}[remember picture, overlay]
+  \node[anchor=north east, draw, fill=white, text width=5cm] 
+    at ([xshift = -2cm, yshift=-4cm] current page.north east) { % Adjust -2cm to move up
+        \textbf{Tips} \\ 
+        \begin{itemize}
+          \item Back up raw data securely
+          \item If you have multiple datasets, create a subfolder for each
+          \item Include codebook or \textcolor{JHOrange}{README} describing when/from where data was received
+          \item Keep scripts separate from outputs they generate
+        \end{itemize}
+    };
+\end{tikzpicture}
+
+
 ## Directory structure (II)
 
 \scriptsize
 
-\textcolor{JHOrange}{More elaborated structure. Subfolders for data and code and folders for documentation and different types of outputs.}
+\textcolor{JHOrange}{More elaborated structure.} Subfolders for data and code, folders for documentation and different types of outputs.
 
 \tiny
 
@@ -100,8 +112,8 @@ project
  |
  |-- data
  |  |  
- |  |-- raw-data
- |  |-- processed-data
+ |  |-- survey-BD
+ |  |-- world-bank
  |    
  |-- code
  |  |  
@@ -127,11 +139,157 @@ project
  |    
 ```
 
-## Directory structure (III)
+## Naming folders and files
+
+-   Clear but short names using standard ASCII alphanumeric characters
+-   Avoid spaces, dots
+-   Useful elements in a filename
+    -   Indication of the content (abbreviated or encoded)
+    -   Date (in the format \textcolor{JHOrange}{YYYYMMDD})
+    -   Version number
+-   Use hyphens or dashes to separate different elements
+-   **Do not** use ambiguous descriptions of the version, such as `_new`, `_lastversion` or `_revised`
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://libguides.uvt.nl/rdmstudent/filenames}{Tilburg University})}
+
+## Coding style
+
+\small
+
+Messy code can be difficult to understand, debug, and update -- especially when you come back to it a few weeks/months later!.
+
+\vspace{1em}
+
+**Using a consistent coding style throughout your project can aid clarity and quality control.**
+
+\vspace{1em}
+
+Find a style guide and stick to it. Examples:
+
+-   [Advanced-R Styleguide](http://adv-r.had.co.nz/Style.html)
+-   [Google's R Styleguide](https://google.github.io/styleguide/Rguide.html)
+
+
+
+## Script formatting
+
+\footnotesize
+
+-   Adopt a file header that is included in every script and allows it to be interpreted on its own
+-   Load packages and data at the top of script
+-   Comment your code!
+-   Organize code into blocks to accomplish a single goal, describe that goal in comment
+
+\vspace{1em}
+
+\tiny
+
+```{r, eval = FALSE}
+################################################################################
+# @project Example Project
+# @description This file is responsible for cleaning column names
+# @return Data frame with cleaned column names
+################################################################################
+# clear environment
+rm(list = ls())
+# libraries
+library(tidyverse)
+# inputs
+dat <- read.csv("./data/survey2024.csv")
+################################################################################
+
+# reshape data wide
+dat %>%
+  pivot_wider(names_from = variable, values_from = estimate)
+```
+
+\centering
+
+\makebox[\textwidth]{(\href{https://github.com/kmishra9/Best-Practices-for-Writing-R-Code}{kmishra9})}
+
+# Research workflow
+
+## Data preparation theory
+
+Each stage of the pipeline consists of a series of code scripts.
+
+\centering
+
+![](figures/data-prep-theory.png){width="350px"}
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://dprep.hannesdatta.com/docs/modules/week5/}{Tilburg University})}
+
+## Workflow
 
 \scriptsize
 
-\textcolor{JHOrange}{Pipeline style, separating source code from generated outputs.}
+Data should flow through the project. All scripts have input(s) and an output. Code is modularized so that you only need to run those that contain changes.
+
+\centering
+
+![](figures/modularization.png){width="350px"}
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://dprep.hannesdatta.com/docs/modules/week5/}{Tilburg University})}
+
+## Components of code
+
+\begin{tikzpicture}[remember picture, overlay]
+  \node[anchor=north east, fill=white, text width=10cm, inner sep=5pt] 
+    at ([xshift=-2cm, yshift=-2cm] current page.north east) { 
+      \parbox{\linewidth}{ % Wrap the list inside a parbox
+      \scriptsize
+       Each and every code file follows the \textcolor{JHOrange}{setup-ITO} (input, transformation, output) procedure. (\href{https://dprep.hannesdatta.com/docs/modules/week2/}{Tilburg University})
+        \begin{enumerate}
+          \item Setup
+            \begin{itemize} \scriptsize \setlength{\itemsep}{0pt}
+              \item Load packages
+              \item Set variables and parameters
+              \item Make connections to databases
+            \end{itemize}
+          \item Input
+            \begin{itemize} \scriptsize \setlength{\itemsep}{0pt}
+              \item Read data
+            \end{itemize}
+          \item Transformation
+            \begin{itemize} \scriptsize \setlength{\itemsep}{0pt}
+              \item Filtering, grouping, summarizing, merging, de-duplication
+              \item Leads to a different primary key than the input data (i.e., your unit of analysis!)
+            \end{itemize}
+          \item Output
+            \begin{itemize} \scriptsize \setlength{\itemsep}{0pt}
+              \item Saving, passing on to next script
+              \item Storing intermediate data
+              \item Auditing
+              \item Generating figures
+            \end{itemize}
+        \end{enumerate}
+      }
+    };
+\end{tikzpicture}
+
+
+## setup-ITO workflow
+
+\centering
+
+![](figures/research-pipeline.png){width="350px"}
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://dprep.hannesdatta.com/docs/modules/week5/}{Tilburg University})}
+
+
+## Align directory structure with workflow
+
+\scriptsize
+
+\textcolor{JHOrange}{Data analysis pipeline structure with subfolders for pipeline stages.}
 
 \tiny
 
@@ -145,133 +303,49 @@ project
  |      +-- prepare_session.R
  |      +-- clean_data.R
  |  |-- analysis
- |      +-- calc_summary_stats.R
+ |      +-- summary_stats.R
  |      +-- fit_model.R
- |  |-- figures
- |      +-- visualizations.R
  |-- gen
  |  |  
  |  |-- data-preparation
+ |      |-- audit
+ |          +-- duplicates.csv
  |      |-- output
  |          +-- survey-clean-20240206.csv
  |      |-- temp
- |          +-- duplicates.csv
+ |          +-- unique-ids.csv
  |  |-- analysis
  |      |-- audit
  |          +-- correlation-plots.pdf
  |      |-- output
  |          +-- model-fit.RData
- |  |-- figures
- |      |-- output
- |          +-- coverage-trend_2000-2020.pdf
+ |          +-- summary_table.csv
 ```
 
-## Folder hierarchy
-
--   Does it work better for your project to have a \textcolor{JHOrange}{flat} structure with many files in a few folders?
-    -   Or a \textcolor{JHOrange}{nested} structure with multiple subfolders and a few files in each?
--   Avoid too many files in each folder (\>10 or 15)
--   Avoid excessive levels of folders (\>3 or 4)
--   Document your project/folder structure in a `README` file
-
-## Data
-
--   Back up raw data securely
--   If you have multiple datasets, create a separate subfolder for each
--   Include codebook or `README` describing data. Include...
-    -   From whom/where
-    -   When it was received/procured
-    
-## Code and outputs
-
--   Keep scripts separate from outputs they generate
--   Do not store copies of the same file in different folders
-
-## Naming folders and files
-
--   Use standard ASCII alphanumeric characters
--   Avoid spaces, dots
--   Clear but short names
--   Useful elements in a filename
-    -   Indication of the content (abbreviated or encoded)
-    -   Date (in the format \textcolor{JHOrange}{YYYYMMDD})
-    -   Version number
--   Use hyphens or dashes to separate different elements in your filename
--   **Do not** use ambiguous descriptions of the version, such as `_new`, `_lastversion` or `_revised`
-
-\tiny
-
-\makebox[\textwidth]{(\href{https://libguides.uvt.nl/rdmstudent/filenames}{Tilburg University})}
+\begin{tikzpicture}[remember picture, overlay]
+  \node[anchor=north east, draw, fill=white, text width=5cm] 
+    at ([xshift = -2cm, yshift=-4cm] current page.north east) { % Adjust -2cm to move up
+        \textbf{Tips} \\ 
+        \begin{itemize}
+          \item Include a \textcolor{JHOrange}{make} file sourcing scripts in the order necessary to execute the analysis
+          \item Source code (\textcolor{JHOrange}{src}) organized in subfolders to match pipeline stage
+          \item Each src subfolder has a corresponding subfolder for generated (\textcolor{JHOrange}{gen}) files
+        \end{itemize}
+    };
+\end{tikzpicture}
 
 
-# Workflow (a bit of theory)
-
-## Data analysis pipeline
-
-building a data analysis pipeline
-
-![](figures/data-prep-theory.png){width="350px"}
-
-\tiny
-
-<https://dprep.hannesdatta.com/docs/modules/week2/>
-
-## Steps in data preparation
-
-Data preparation theory: components of source code
-
-```         
-1) Initializing the script/setup. Setup such as loading packages, setting variables, making database connection
-    Loading packages, Making connections to databases, Any other “main” parameters (e.g., “Knowing” whether to prototype or not)
-2) Input (e.g., loading data)
-  Read data (e.g., unstructured/unstructured data, remote/local locations, files or databases)
-3) Transformation
-    e.g., filtering, aggregation, merging, transformation, deduplication (more later) 
-    many options…: filtering, grouping and summarizing, creating new variables, etc.
-    mostly leads to a “different primary key than the input data” (–> unit of analysis!)
-4) Output (e.g., saving, passing on to the next script)
-   Store (intermediate) data, figures (e.g., auditing, final)
-```
-
-Each and every source code file obeys to the “setup-ITO” (input, transformation, output) procedure.
-
-<https://dprep.hannesdatta.com/docs/modules/week2/tutorial/tutorial#/4>
-
-## Flow
-
-Data should flow through a script
-
-load data, analyze, save output
-
-## Modularization
-
-Split code into chunks. Everything with an input and output.
-
-![](figures/modularization.png){width="350px"}
-
-\tiny
-
-<https://dprep.hannesdatta.com/docs/modules/week5/>
-
-## Make file
-
-Include a \textcolor{JHAccentRed}{\tt make} file sourcing scripts in the order necessary to execute the analysis
-
-## Guidelines
-
--   Include a `makefile` with scripts run in order necessary to execute analysis
-    -   Alternatively, include a `readme` with project description and instructions for how to run/build the project
--   Ensure file names are relative and not absolute
 
 # Data exploration
 
+
 ## Somalia R2HC dataset
 
+Data description: [Insert description here] This file is a long version of the data from all 3 time points. 
+
+## Load and view data
+
 \tiny
-
-Data description: This file is a long version of the data from all 3 time points. 
-
-## Loading data
 
 ```{r}
 # clear environment
@@ -293,33 +367,60 @@ library(haven)
 dat <- read_dta(paste0(yourFilePath, 
                        "/jhbsph-applied-data-analysis-2025/data/R2HC_MainPaperData.dta"))
 
-# view data in separate window
+# look at your data in a separate window
 # View(data)
 
-# number of columns
+# print first five rows and first six columns
+head(dat)[1:6]
+```
+
+## Explore data
+
+\tiny
+
+```{r}
+# check number of columns
 ncol(dat)
+```
+\vspace{10pt}
 
-# number of rows
+```{r}
+# check number of rows
 nrow(dat)
+```
+\vspace{10pt}
 
-# column names
+```{r}
+# look at (subset of) column names
 names(dat)[1:10]
 ```
 
-## Data types
+## Check data types
 
 \tiny
 
 ```{r}
 # check data structure
 class(dat)
+```
+\vspace{10pt}
 
+```{r}
 # check type of data stored in columns
 sapply(dat[,1:5], class)
+```
 
+## Recode data types where needed
+
+\tiny
+
+```{r}
 # look closer at labelled values
 unique(dat$time_datacollect)
+```
+\vspace{10pt}
 
+```{r}
 # assign factor labels as values
 dat <- haven::as_factor(dat, levels="labels")
 unique(dat$time_datacollect)
@@ -332,18 +433,26 @@ unique(dat$time_datacollect)
 If there are dates in your dataset, make sure they are in date format.
 
 ```{r}
+# create dummy data
 df <- data.frame(obs_n = 1:3,
                  date = c("2003/08/21", "2004/07/10", "2010/06/05"))
+# check class of "date" column
 class(df$date)
+```
+\vspace{10pt}
 
+```{r}
 # convert column to date format
 df$date <- as.Date(df$date)
 
-# format date
+# format date and save as new column
 df$formatted_date <- format(df$date, "%m/%d/%Y")
 class(df$formatted_date)
+```
+\vspace{10pt}
 
-df
+```{r}
+print(df)
 ```
 
 ## Checking for missing values
@@ -353,30 +462,61 @@ df
 ```{r}
 # returns TRUE if there are any NAs
 any(is.na(dat))  
+```
+\vspace{10pt}
 
-# returns TRUE if there are any blank spaces
+```{r}
+# returns TRUE if there are any empty strings
 any(dat == "", na.rm = TRUE)
+```
+\vspace{10pt}
 
+```{r}
 # returns TRUE if there are any blank spaces of any size
-any(trimws(dat) == "", na.rm = TRUE)  
+any(trimws(dat) == "", na.rm = TRUE)
+```
+\vspace{10pt}
 
-# identify columns with blank spaces
-cols_with_blanks <- colnames(dat)[colSums(dat == "", na.rm = TRUE) > 0]
+```{r, eval = FALSE}
+# identify columns with empty strings
+cols_with_empty<- colnames(dat)[colSums(dat == "", na.rm = TRUE) > 0]
 
-# look at columns with blank spaces
-# View(dat[,cols_with_blanks])
+# look at columns with empty strings
+View(dat[,cols_with_empty])
+```
 
-# replace blank spaces with NA
+## Recode missing values all as NA
+
+\tiny
+
+```{r}
+# replace empty strings with NA
 dat[dat == ""] <- NA
 
-# check again if any blank spaces
+# replace empty strings or blank spaces of any size with NA
+dat[dat == "" | grepl("^\\s*$", dat)] <- NA
+
+# check again if any empties
 any(dat == "", na.rm = TRUE)
+```
+\vspace{10pt}
 
-# number of NAs in each column
-colSums(is.na(dat))[c(1,5,6,7)]  # Shows the count of NAs in each column
 
+```{r}
+# number of NAs in select columns
+colSums(is.na(dat))[c(1,5,6,7)]
+```
+\vspace{10pt}
+
+```{r}
 # number of rows with no NAs
 nrow(dat[complete.cases(dat), ])
+```
+
+## Remove special characters
+
+```{r}
+
 ```
 
 ## Unit of analysis (I)
@@ -386,56 +526,102 @@ nrow(dat[complete.cases(dat), ])
 ```{r}
 # find columns with "id" in their name
 names(dat)[grepl("id", names(dat), ignore.case = TRUE)]
+```
+\vspace{10pt}
 
+```{r}
 # number of rows in data frame
 nrow(dat)
-
-# number of unique values in id variables
-length(unique(dat$hhid))
-length(unique(dat$id_chld))
-length(unique(dat$id_child))
-
-# number of times each child id is repeated
-library(tidyr)
-library(dplyr)
-dat %>%
-  count(id_child, name = "obs_per_child") %>%
-  count(obs_per_child, name = "n")
 ```
+\vspace{10pt}
+
+```{r}
+# number of unique values in id_child
+length(unique(dat$id_child))
+```
+
+id_child does not uniquely identify the rows of the data frame.
 
 ## Unit of analysis (II)
 
 \tiny
 
 ```{r}
-# check data collection times
+# check the number of times each child id is repeated
+library(tidyr)
+library(dplyr)
+dat %>%
+  count(id_child, name = "obs_per_child") %>%
+  count(obs_per_child, name = "n")
+```
+\vspace{10pt}
+
+```{r}
+# unique values for data collection time variable
 unique(dat$time_datacollect)
+```
 
+## Unit of analysis (III)
+
+\tiny
+
+```{r}
 # check if id_child is a unique identifier within each time point
+# number of rows where time_datacollect equal baseline
 nrow(subset(dat, time_datacollect == "Baseline"))
-length(unique(subset(dat, time_datacollect == "Baseline")$id_child))
+```
+\vspace{10pt}
 
+```{r}
+# number of unique child ids when time_datacollect equals baseline
+length(unique(subset(dat, time_datacollect == "Baseline")$id_child))
+```
+\vspace{10pt}
+
+```{r}
+# is the number of rows where time_datacollect equals midline equal to the number of 
+# unique id_child values?
 nrow(subset(dat, time_datacollect == "Midline")) == 
   length(unique(subset(dat, time_datacollect == "Midline")$id_child))
+```
+\vspace{10pt}
 
+```{r}
 nrow(subset(dat, time_datacollect == "Endline")) ==
   length(unique(subset(dat, time_datacollect == "Endline")$id_child))
+```
 
-# create a variable to uniquely identify rows
+## Create unique identifier
+
+\tiny
+
+```{r}
+# sort data
 dat <- dat[order(dat$hhid, dat$id_child, dat$time_datacollect),]
+# vector of column names in desired order
 col_order <- c("recnr", names(dat))
+# create column recnr that is 1:N
 dat$recnr <- 1:nrow(dat)
+# arrange columns in data frame
 dat <- dat[,col_order]
 
 head(dat[,1:5])
 ```
 
-## Operationalizing variables
+## Save (somewhat) cleaned data
 
--   Standardize naming conventions to ensure uniqueness, improve clarity
--   Find a compromise between length and clarity
+```{r, eval = FALSE}
+dat <- write.csv(dat, paste0(yourFilePath, 
+                        "/jhbsph-applied-data-analysis-2025/gen/",
+                        "r2hc-exploration-", 
+                        format(Sys.Date(), "%Y%m%d"), ".csv"),
+                 row.names = FALSE)
+```
+
 
 ## Data exploration checklist
+
+\scriptsize
 
 *  How many rows are there in the data?
 *  How many columns?
