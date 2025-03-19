@@ -1,0 +1,64 @@
+---
+title: "7 - Advanced data visualization"
+author: | 
+  | Hallie Eilerts-Spinelli
+  | \texttt{\href{mailto:heilert1@jh.edu}{heilert1@jh.edu}}
+  | Johns Hopkins Bloomberg School of Public Health
+  | Applied Data Analysis
+date: "March 2025"
+output: 
+   beamer_presentation:
+    keep_tex: true
+    latex_engine: xelatex
+    highlight: espresso
+    toc: true
+header-includes:
+  - \input{myheader.tex}
+colorlinks: true
+urlcolor: JHBlue
+linkcolor: HeritageBlue
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+options(tinytex.verbose = TRUE)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+```
+
+
+Advanced data visualization; construction of common tables and figures to visualize key findings for dissemination  
+
+E.g. advanced visualizations for preparing findings, automating visualizations/outputs
+
+# Hal to-do's
+
+## Still need to look at
+
+Full tutorial of data prep: <https://dprep.hannesdatta.com/docs/modules/week2/tutorial/intro-to-r> Full tutorial for engineering datasets: <https://dprep.hannesdatta.com/docs/modules/week4/tutorial/data-preparation>
+
+## Resources
+
+[R for Social Scientists](https://datacarpentry.github.io/r-socialsci/)
+
+Data carpentry github: <https://github.com/datacarpentry/r-socialsci/blob/main/episodes/00-intro.Rmd>
+
+[Introduction to R](https://www.datacamp.com/courses/free-introduction-to-r)
+
+[Introduction to Github](https://github.com/skills/introduction-to-github)
+
+## References
+
+[RStudio User Guide](https://docs.posit.co/ide/user/)
+
+[R for Social Scientistics](https://datacarpentry.github.io/r-socialsci/index.html)
+
+[Tilburg Science Hub](https://tilburgsciencehub.com/)
+
+[ClaytonJY R style guide](https://github.com/ClaytonJY/R-Styleguide?tab=readme-ov-file)
+
+[Roman Pahl R bloggers style guide](https://www.r-bloggers.com/2019/11/my-r-style-guide/)
+
+[Tilburg Science Hub](https://tilburgsciencehub.com/topics/automation/workflows/auditing/workflow-checklist/)
+

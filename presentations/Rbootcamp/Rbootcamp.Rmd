@@ -53,6 +53,17 @@ Download RStudio from <https://posit.co/downloads/>
 
 More instructions: <https://datacarpentry.github.io/r-socialsci/>
 
+## RStudio
+
+```{r, echo = FALSE}
+include_graphics("figures/rstudio.png")
+```
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://docs.posit.co/ide/user/ide/guide/ui/ui-panes.html}{Rstudio User Guide})}
+
+
 ## Basics
 
 The simplest usage of R is as a calculator. You can get output from R simply by typing math in the console:
@@ -82,6 +93,43 @@ For your code and workflow to be reproducible, type commands in the script edito
 
 RStudio allows you to execute commands directly from the script editor by using the \textcolor{JHAccentRed}{\tt Ctrl} + \textcolor{JHAccentRed}{\tt Enter} shortcut (on Mac, \textcolor{JHAccentRed}{\tt Cmd} + \textcolor{JHAccentRed}{\tt Return}).
 
+## Script and workspace
+
+An R script contains the codes to perform analysis. It is always
+better to save an R script than directly typing into R console.
+I As we run through codes, many objects (loaded data, intermediate
+values, results, ...) are stored in your R session.
+I The multiple objects (e.g., x, y, and z above) are accumulated in
+your workspace.
+I When quitting R, you need to decide if you want to save your
+workspace (into a .RData file)
+I Pro: if saved, next time you can reload and pick up all the objects
+you have created this time.
+I Con: if you accidentally modified something, there’s no easy way to
+spot the change from looking at the .RData file
+I Good practice for reproducibility: take your script as where the
+analysis ‘live’ instead of the workspace
+
+(https://faculty.washington.edu/jonno/PAA-SAE/PAA-2018-R.pdf)
+
+## Data types
+
+Some common types...
+
+*  Vector
+*  Matrix
+*  Array
+*  data.frame
+*  list
+
+Some common modes...
+
+*  numeric
+*  character
+*  factor
+*  logical
+
+
 ## Packages
 
 R packages are extensions to the programming language. They contain code, data, and documentation.
@@ -97,7 +145,6 @@ Once a package is installed on your computer, you do not need to install it agai
 ```{r, eval = FALSE}
 library("package_name")
 ```
-
 
 ## Popular packages
 
@@ -197,7 +244,7 @@ knitr::kable(comparison_table, format = "latex", col.names = c("Feature", "Base 
 
 \small
 
-If your code is messy, it's hard to be confident in your results. Messy code also be difficult to understand, debug, and tweak (especially when you come back to it a few weeks/months later!).
+If your code is messy, it's hard to be confident in your results. Messy code can also be difficult to understand, debug, and tweak (especially when you come back to it a few weeks/months later!).
 
 \vspace{1em}
 
@@ -249,7 +296,7 @@ v_countries  # vector of country names
 fn_makeBoxPlot() # custom function for making box plot
 ```
 
-## Coding syntax
+## Coding syntax tips
 
 -   Use two spaces per level of indentation
 -   Put spaces around operators (e.g., +, -, \*), after commas
@@ -258,7 +305,7 @@ fn_makeBoxPlot() # custom function for making box plot
     -   Reserve `=` for argument passing in functions
 -   Useful [RStudio addin](https://www.r-bloggers.com/2016/10/align-assign-rstudio-addin-to-align-assignment-operators/) that helps align code neatly
 
-## Organization
+## Script format
 
 \footnotesize
 
@@ -450,7 +497,7 @@ for (i in 1:5) {
 
     -   \scriptsize simple operation prioritizing readability over speed
 
-# Vectorized operations
+# Vectorization
 
 ## Vectorized operations
 

@@ -1,0 +1,347 @@
+---
+title: "4 - Data management and descriptive analyses "
+author: | 
+  | Hallie Eilerts-Spinelli
+  | Johns Hopkins Bloomberg School of Public Health
+  | Applied Data Analysis
+  | \texttt{\href{mailto:heilert1@jh.edu}{heilert1@jh.edu}}
+date: "March 2025"
+output: 
+   beamer_presentation:
+    keep_tex: true
+    latex_engine: xelatex
+    highlight: espresso
+    toc: true
+header-includes:
+  - \input{myheader.tex}
+colorlinks: true
+urlcolor: JHBlue
+linkcolor: HeritageBlue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align="center")
+options(tinytex.verbose = TRUE)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+```
+
+# Introduction
+
+
+## Motivation
+
+## Agenda
+
+1.  Data management
+2.  Descriptive analysis
+
+
+# Data management
+
+## Load data and packages
+
+\tiny
+
+```{r, echo = FALSE}
+rm(list = ls())
+yourFilePath <- "C:/Users/HEilerts/Institute of International Programs Dropbox/Hallie Eilerts-Spinelli/Teaching/AppliedDataAnalysis"
+```
+
+```{r}
+# package for data manipulation
+library(tidyverse)
+
+dat <- read.csv(paste0(yourFilePath, "/jhbsph-applied-data-analysis-2025/gen/r2hc-exploration-20250408.csv"))
+```
+
+## Merging
+
+\scriptsize
+
+Merging is a cornerstone of data management and analysis which allows you to augment data and bring together information from multiple sources.
+
+\centering
+
+![](figures/merging.png){width="300px"}
+\tiny
+
+\makebox[\textwidth]{(\href{https://rforhr.com/join.html}{rforhr})}
+
+## Merge on summary data
+
+\tiny
+
+```{r}
+# select subset of rows and columns
+dat_small <- dat[1:50, c("id_child", "time_datacollect","wt_chld")]
+head(dat_small)
+```
+\vspace{10pt}
+
+```{r}
+# calculate average weight per child
+avg_wt <- aggregate(wt_chld ~ id_child, data = dat_small, FUN = mean, na.rm = TRUE)
+names(avg_wt) <- c("id_child", "wt_chld_avg")
+head(avg_wt)
+```
+\vspace{10pt}
+
+```{r}
+# merge back to data
+dat_merge <- merge(dat_small, avg_wt, by = "id_child")
+head(dat_merge)
+```
+
+## Merging pitfalls (I)
+
+\scriptsize
+
+Be careful not to lose any observations when merging! By default, only observations with id variables in each data frame will be retained. You can add arguments to `merge()` to override this behavior.
+
+\tiny
+
+```{r, eval=FALSE}
+# keep all observations in x 
+merge(dat_small, avg_wt, by = "id_child", all.x = TRUE)
+# keep all observations in y
+merge(dat_small, avg_wt, by = "id_child", all.y = TRUE)
+# keep all observations in x and y 
+merge(dat_small, avg_wt, by = "id_child", all = TRUE)
+```
+
+## Merging pitfalls (II)
+
+\scriptsize
+
+If you want non-matching observations to be dropped, make sure to be aware of how many.
+
+\tiny
+
+```{r}
+dat_small2 <- dat[25:75, c("id_child", "time_datacollect","wt_chld")]
+dat_merge2 <- merge(dat_small2, avg_wt, by = "id_child")
+
+# number of rows and unique id_child in dat_small2
+nrow(dat_small2)
+length(unique(dat_small2$id_child))
+
+# number of rows and unique id_child in merged dataset
+nrow(dat_merge2)
+length(unique(dat_merge2$id_child))
+
+# number of id_child that were dropped during the merge
+sum(!(unique(dat_small2$id_child) %in% unique(dat_merge2$id_child)))
+# id_child that were dropped
+unique(dat_small2$id_child)[!(unique(dat_small2$id_child) %in% unique(dat_merge2$id_child))]
+```
+
+## Reshaping
+
+\scriptsize
+
+Data can be displayed in wide or long format. The information is the same, though the layout differs.
+
+It is common to go back and forth between wide and long formats depending what kind of operations we are performing. Most statistical modeling functions expect data in the long format. 
+
+\centering
+
+![](figures/wide-long-format.png){width="250px"}
+\tiny
+
+\makebox[\textwidth]{(\href{https://www.statology.org/cast-in-r/}{statology})}
+
+
+## Long data
+
+\scriptsize
+
+`long` format will have multiple records (rows) for each individual, with the time-constant variables being constant across these records and the time-varying variables varying across the records. 
+
+\vspace{10pt}
+
+\tiny
+
+```{r}
+# select subset of rows and columns
+dat_small <- dat[1:50, c("id_child", "time_datacollect","wt_chld")]
+
+head(dat_small)
+```
+
+## Reshape wide
+
+\scriptsize
+
+`wide` format of a longitudinal dataset will have one record (row) for each unit. Typically some time-constant variables occupy single columns and some time-varying variables occupy multiple columns (one column for each time point). 
+
+\vspace{10pt}
+
+\tiny
+
+```{r}
+# reshape data wide
+dat_wide <- reshape(dat_small,
+                    timevar = "time_datacollect",
+                    idvar = "id_child",
+                    v.names = "wt_chld",
+                    direction = "wide")
+
+head(dat_wide)
+```
+
+## Reshape long
+
+\tiny
+
+```{r}
+dat_long <- reshape(dat_wide,
+                    idvar = "id_child",
+                    varying = list(names(dat_wide)[grep("wt_chld", names(dat_wide))]),
+                    timevar = "time_point",
+                    v.names = "weight",
+                    direction = "long")
+dat_long <- dat_long[order(dat_long$id_child, dat_long$time_point),]
+head(dat_long)
+```
+\vspace{10pt}
+
+\scriptsize
+
+Note that the `reshape()` function has converted `timevar` to an integer.
+
+## Reshaping with tidyverse (I)
+
+\tiny
+
+```{r}
+dat_wide <- dat_small %>%
+  pivot_wider(
+    names_from = time_datacollect,
+    values_from = wt_chld,        
+    names_prefix = ""            
+  )
+head(dat_wide)
+```
+\vspace{10pt}
+
+```{r}
+dat_long <- dat_wide %>%
+  pivot_longer(
+    cols = -id_child, # Select all columns except the identifier
+    names_to = "observation",  # Column name for the new time variable
+    values_to = "weight"  # Column name for the values
+  )
+head(dat_long)
+```
+
+## Reshaping with tidyverse (II)
+
+```{r}
+# rehape all columsn with prefix "yest" that contain characters
+dat_long <- dat %>%
+  select(id_child, time_datacollect, starts_with("yest") & where(is.character)) %>% 
+  pivot_longer(
+    cols = starts_with("yest"), 
+    names_to = "variable", 
+    values_to = "value"  
+  )
+head(dat_long)
+```
+
+## De-duplication
+
+```{r}
+dat_id <- dat[,c("hhid", "id_child")]
+head(dat_id)
+```
+\vspace{10pt}
+
+```{r}
+head(dat_id[!duplicated(dat_id),])
+```
+
+\vspace{10pt}
+
+```{r, eval = FALSE}
+# with tidyverse
+dat %>%
+  select(hhid, id_child) %>%
+  unique %>%
+  head
+```
+
+## Extrapolation
+
+\tiny
+
+```{r}
+dat %>%
+  select(id_child, time_datacollect, wt_mother) %>%
+  head()
+```
+
+\vspace{10pt}
+
+```{r}
+# flat extrapolation of wt_mother forwards and backwards
+dat %>%
+  select(id_child, time_datacollect, wt_mother) %>%
+  mutate(time_datacollect_fac = factor(time_datacollect, 
+                               levels = c("Baseline", "Midline", "Endline")),
+         wt_mother_ext = wt_mother) %>%
+  arrange(id_child, time_datacollect_fac) %>%
+  group_by(id_child) %>%
+  fill(wt_mother_ext, .direction = "downup") %>%
+  head()
+```
+
+## Linear interpolation
+
+\tiny
+
+```{r}
+# linearly interpolate between values
+library(zoo)
+dat %>%
+  select(id_child, time_datacollect, wt_mother) %>%
+  mutate(time_datacollect_fac = factor(time_datacollect, 
+                               levels = c("Baseline", "Midline", "Endline")),
+         wt_mother_ext = wt_mother) %>%
+  arrange(id_child, time_datacollect_fac) %>%
+  group_by(id_child) %>%
+  fill(wt_mother_ext, .direction = "downup") %>%
+  mutate(wt_mother_int = na.approx(wt_mother, time_datacollect_fac, rule = 2, na.rm = FALSE)) %>%
+  mutate(wt_mother_new = ifelse(!is.na(wt_mother_int), wt_mother_int, wt_mother_ext)) %>%
+  head()
+```
+
+## Imputation
+
+# Descriptive analysis
+
+## Outlier detection
+
+## Summary statistics
+
+```         
+We can generate summary statistics using the summary() command.
+    do values make sense?
+    are there any missing values?
+We can also zoom in on specific columns
+    let's start making sense of the retail_and_recreation_percent_change_from_baseline variable: what does it mean?
+    let's plot this variable over time!
+If our target unit of analysis is different from the unit of analysis in the current data set, we can also use aggregation.
+```
+
+## Univariate statistics
+
+## Bivariate statistics
+
+## Basic visualizations
+
+## Exporting results
+

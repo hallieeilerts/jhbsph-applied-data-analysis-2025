@@ -1,5 +1,5 @@
 ---
-title: "3 - Introduction to data management and cleaning"
+title: "3 - Project setup and data exploration"
 author: | 
   | Hallie Eilerts-Spinelli
   | Johns Hopkins Bloomberg School of Public Health
@@ -173,13 +173,12 @@ Find a style guide and stick to it. Examples:
 
 
 
-## Script formatting
+## Script format
 
 \footnotesize
 
 -   Adopt a file header that is included in every script and allows it to be interpreted on its own
 -   Load packages and data at the top of script
--   Comment your code!
 -   Organize code into blocks to accomplish a single goal, describe that goal in comment
 
 \vspace{1em}
@@ -211,81 +210,49 @@ dat %>%
 
 # Research workflow
 
-## Data preparation theory
-
-Each stage of the pipeline consists of a series of code scripts.
-
-\centering
-
-![](figures/data-prep-theory.png){width="350px"}
-
-\tiny
-
-\makebox[\textwidth]{(\href{https://dprep.hannesdatta.com/docs/modules/week5/}{Tilburg University})}
-
-## Workflow
+## Project pipeline (I)
 
 \scriptsize
 
-Data should flow through the project. All scripts have input(s) and an output. Code is modularized so that you only need to run those that contain changes.
+Build a project pipeline that outlines the flow of tasks from loading data, cleaning, analysis, and report generation.
 
 \centering
 
-![](figures/modularization.png){width="350px"}
+![](figures/research-pipeline-blank.png){width="350px"}
 
 \tiny
 
 \makebox[\textwidth]{(\href{https://dprep.hannesdatta.com/docs/modules/week5/}{Tilburg University})}
 
-## Components of code
 
-\begin{tikzpicture}[remember picture, overlay]
-  \node[anchor=north east, fill=white, text width=10cm, inner sep=5pt] 
-    at ([xshift=-2cm, yshift=-2cm] current page.north east) { 
-      \parbox{\linewidth}{ % Wrap the list inside a parbox
-      \scriptsize
-       Each and every code file follows the \textcolor{JHOrange}{setup-ITO} (input, transformation, output) procedure. (\href{https://dprep.hannesdatta.com/docs/modules/week2/}{Tilburg University})
-        \begin{enumerate}
-          \item Setup
-            \begin{itemize} \scriptsize \setlength{\itemsep}{0pt}
-              \item Load packages
-              \item Set variables and parameters
-              \item Make connections to databases
-            \end{itemize}
-          \item Input
-            \begin{itemize} \scriptsize \setlength{\itemsep}{0pt}
-              \item Read data
-            \end{itemize}
-          \item Transformation
-            \begin{itemize} \scriptsize \setlength{\itemsep}{0pt}
-              \item Filtering, grouping, summarizing, merging, de-duplication
-              \item Leads to a different primary key than the input data (i.e., your unit of analysis!)
-            \end{itemize}
-          \item Output
-            \begin{itemize} \scriptsize \setlength{\itemsep}{0pt}
-              \item Saving, passing on to next script
-              \item Storing intermediate data
-              \item Auditing
-              \item Generating figures
-            \end{itemize}
-        \end{enumerate}
-      }
-    };
-\end{tikzpicture}
+## Project pipeline (II)
 
+\scriptsize
 
-## setup-ITO workflow
+Data should flow through the project, with each script loading inputs, transforming the data, and creating a new output to pass along to the next script. 
 
 \centering
 
 ![](figures/research-pipeline.png){width="350px"}
+\tiny
+
+\makebox[\textwidth]{(\href{https://dprep.hannesdatta.com/docs/modules/week5/}{Tilburg University})}
+
+## Modularized code
+
+\scriptsize
+Breakdown analysis into code that performs small, manageable steps. If you make changes, you will only need to run the code from that step onwards.
+
+\centering
+
+![](figures/modularization.png){width="300px"}
 
 \tiny
 
 \makebox[\textwidth]{(\href{https://dprep.hannesdatta.com/docs/modules/week5/}{Tilburg University})}
 
 
-## Align directory structure with workflow
+## Align file directory structure with workflow
 
 \scriptsize
 
@@ -335,9 +302,7 @@ project
 \end{tikzpicture}
 
 
-
 # Data exploration
-
 
 ## Somalia R2HC dataset
 
@@ -410,7 +375,7 @@ class(dat)
 sapply(dat[,1:5], class)
 ```
 
-## Recode data types where needed
+## Factors
 
 \tiny
 
@@ -421,7 +386,7 @@ unique(dat$time_datacollect)
 \vspace{10pt}
 
 ```{r}
-# assign factor labels as values
+# can assign factor labels as values
 dat <- haven::as_factor(dat, levels="labels")
 unique(dat$time_datacollect)
 ```
@@ -455,7 +420,36 @@ class(df$formatted_date)
 print(df)
 ```
 
-## Checking for missing values
+## Character variables
+
+\tiny
+
+```{r}
+head(dat$enum_baseline,10)
+```
+\vspace{10pt}
+
+```{r}
+# convert to lower case
+dat$enum_baseline_clean <- tolower(dat$enum_baseline)
+head(dat$enum_baseline_clean, 10)
+```
+\vspace{10pt}
+
+```{r}
+library(stringi)
+# convert non-ASCII characters into their closest Latin character equivalent
+dat$enum_baseline_clean <- stri_trans_general(dat$enum_baseline_clean, "Latin-ASCII")
+```
+\vspace{10pt}
+
+```{r}
+# create column for first name
+dat$enum_firstname <- gsub("^(\\S+).*", "\\1", dat$enum_baseline_clean)
+head(dat$enum_firstname, 10)
+```
+
+## Missing values
 
 \tiny
 
@@ -485,7 +479,7 @@ cols_with_empty<- colnames(dat)[colSums(dat == "", na.rm = TRUE) > 0]
 View(dat[,cols_with_empty])
 ```
 
-## Recode missing values all as NA
+## Recode missing values
 
 \tiny
 
@@ -513,13 +507,8 @@ colSums(is.na(dat))[c(1,5,6,7)]
 nrow(dat[complete.cases(dat), ])
 ```
 
-## Remove special characters
 
-```{r}
-
-```
-
-## Unit of analysis (I)
+## Check id variables
 
 \tiny
 
@@ -540,56 +529,59 @@ nrow(dat)
 length(unique(dat$id_child))
 ```
 
-id_child does not uniquely identify the rows of the data frame.
+`id_child` does not uniquely identify the rows of the data frame.
 
-## Unit of analysis (II)
+## Observations per individual
 
 \tiny
 
 ```{r}
-# check the number of times each child id is repeated
-library(tidyr)
-library(dplyr)
+# count the frequency of each id_child
+head(table(dat$id_child))
+```
+\vspace{10pt}
+```{r}
+# add as column to data
+dat$id_count <- table(dat$id_child)[dat$id_child]
+```
+\vspace{10pt}
+```{r}
+# do the same but with tidyverse
+library(tidyverse)
 dat %>%
   count(id_child, name = "obs_per_child") %>%
   count(obs_per_child, name = "n")
 ```
 \vspace{10pt}
 
-```{r}
-# unique values for data collection time variable
-unique(dat$time_datacollect)
-```
-
-## Unit of analysis (III)
+## Observation time
 
 \tiny
 
 ```{r}
-# check if id_child is a unique identifier within each time point
-# number of rows where time_datacollect equal baseline
+# data collection time variable
+unique(dat$time_datacollect)
+```
+\vspace{10pt}
+
+```{r}
+# number of rows where time_datacollect is baseline
 nrow(subset(dat, time_datacollect == "Baseline"))
 ```
 \vspace{10pt}
 
 ```{r}
-# number of unique child ids when time_datacollect equals baseline
+# number of unique child ids for basline
 length(unique(subset(dat, time_datacollect == "Baseline")$id_child))
 ```
 \vspace{10pt}
 
 ```{r}
-# is the number of rows where time_datacollect equals midline equal to the number of 
-# unique id_child values?
 nrow(subset(dat, time_datacollect == "Midline")) == 
   length(unique(subset(dat, time_datacollect == "Midline")$id_child))
 ```
-\vspace{10pt}
 
-```{r}
-nrow(subset(dat, time_datacollect == "Endline")) ==
-  length(unique(subset(dat, time_datacollect == "Endline")$id_child))
-```
+When `time_datacollect` == "Baseline", there is one row per `id_child`.
 
 ## Create unique identifier
 
@@ -609,6 +601,8 @@ head(dat[,1:5])
 ```
 
 ## Save (somewhat) cleaned data
+
+\tiny
 
 ```{r, eval = FALSE}
 dat <- write.csv(dat, paste0(yourFilePath, 
