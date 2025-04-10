@@ -1,21 +1,21 @@
 ---
 title: "4 - Data management and descriptive analyses "
 author: | 
-  | Hallie Eilerts-Spinelli
-  | Johns Hopkins Bloomberg School of Public Health
   | Applied Data Analysis
-  | \texttt{\href{mailto:heilert1@jh.edu}{heilert1@jh.edu}}
-date: "March 2025"
+  | Nadia Akseer, Emily Keats
+  | \href{mailto:heilert1@jh.edu}{Hallie Eilerts-Spinelli}
+  | TA: Pranab Chatterjee \vspace{-1em}
+date: "April 2025"
 output: 
    beamer_presentation:
     keep_tex: true
     latex_engine: xelatex
+    theme: "Darmstadt"
     highlight: espresso
-    toc: true
+    toc: false
 header-includes:
-  - \input{myheader.tex}
+  - \input{myheader_darmstadt.tex}
 colorlinks: true
-urlcolor: JHBlue
 linkcolor: HeritageBlue
 editor_options: 
   chunk_output_type: console
@@ -31,32 +31,382 @@ library(tidyr)
 
 # Introduction
 
-
 ## Motivation
 
-## Agenda
+\scriptsize
 
-1.  Data management
-2.  Descriptive analysis
+Data wrangling, also known as data cleaning or data preparation, refers to the process of transforming and organizing raw data into a more usable form for analysis. We covered some data preparation tasks in lecture 3 and will look into more today.
 
-
-# Data management
-
-## Load data and packages
+![](figures/data_cowboy.png){width="350px"}
 
 \tiny
 
+\makebox[\textwidth]{(\href{https://jeremymack-lu.github.io/rprog/?panelset=logical&panelset1=programmatically&panelset2=programmatically2&panelset3=programmatically3&panelset4=tidyverse&panelset5=tidyverse2&panelset6=tidyverse3}{Lu 2020})}
+
+## Agenda
+
+1.  Functions and packages for data management
+2.  Data transformation
+3.  Dealing with missing values
+4.  Descriptive analysis
+
+# Functions and packages
+
+## Functions and packages
+
+-   \textcolor{JHOrange}{R packages} are extensions to the R programming language that contain pre-built \textcolor{JHOrange}{functions} for common tasks
+-   You could conduct all data cleaning/wrangling using base R
+-   However, there are some packages designed to assist with data wrangling that will make your life easier
+
+## Functions
+
+\small
+
+Most of the work in R is done through functions. There are many functions already implemented in base R (i.e., we do not need to load a package to use them). For example...
+
+\scriptsize
+
+Function \textcolor{JHAccentRed}{\tt c()} concatenates values into a vector.
+
+```{r}
+myVec <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+myVec
+```
+
+Function \textcolor{JHAccentRed}{\tt sum()} returns the sum of all present in its arguments.
+
+```{r}
+sum(myVec)
+```
+
+## User-defined functions
+
+\scriptsize
+
+If the same operation need to be repeated throughout your project, it is much better to write a function that can be called multiple times rather than copy and paste your code.
+
+\vspace{10pt}
+
+\tiny
+
+```{r}
+fitGLMmodel <- function(df, covariate_metadata) {
+
+  # GLM regression
+  fit <- glm(formula = covariate_metadata$glm_formula,
+             data = df,
+             family = covariate_metadata$glm_family,
+             na.action = na.omit)
+
+  # Save information about the fit
+  capture.output(summary(fit), file=str_glue("./gen/{covariate_metadata$name}/audit/glm_summary.txt"))
+  
+  # Append fitted data to input frame
+  value_glm = as_tibble(predict(fit, newdata=training_data, type="response")) %>% rename(value_glm=value)
+  result <- cbind(df, value_glm)
+  
+  # Plot fit
+  ggplot(result %>% filter(!is.na(value_raw)), aes(x = value_raw, y = value_glm)) + geom_point()
+  ggsave(str_glue("./gen/{covariate_metadata$name}/audit/glm_fit.png"), width = 14, height = 14)
+  
+  return(result)
+}
+```
+
+## R packages
+
+\scriptsize
+
+-   You can find a package with functions to assist with almost any task
+-   The functions contained in packages have names, arguments/inputs, and returned object(s) which can be found in the function documentation or online
+-   Only load packages you directly use in your code
+-   Drawbacks of too many packages:
+    -  Conflicts between functions with the same name
+    -  Some packages may not be updated regularly and might break when you update R or other packages
+    -  Harder for others to run your code
+
+\vspace{10pt}
+
+```{r, eval = FALSE}
+# install for the first time
+install.packages("package_name")
+
+# if a package has already been installed,
+# load it at the start of the session when you need it 
+library("package_name")
+
+# show information on function in Help pane
+?function_name
+```
+
+
+## Packages for data wrangling
+
+\scriptsize
+
+`Base R`, `tidyverse`, and `data.table` packages represent three different paradigms for data management and analysis.
+
+\centering
+
+\tiny
+
+```{r, echo = FALSE, results="asis"}
+
+# Create the data frame for the table
+comparison_table <- data.frame(
+  Feature = c(
+    "Ease of Use", "Performance", "Readability", "Flexibility", "Memory Usage",
+    "Dependencies", "Community", "Learning Curve", "Strengths", "Weaknesses"
+  ),
+  Base_R = c(
+    "Familiar to R users but can be verbose.",
+    "Adequate for small datasets.",
+    "Can be less readable for complex tasks.",
+    "Built-in functions for most tasks.",
+    "Moderate, can struggle with larger datasets.",
+    "No external packages required.",
+    "Core R support with extensive resources.",
+    "Moderate, procedural style.",
+    "Versatile, minimal dependencies.",
+    "Verbose, less efficient for big data."
+  ),
+  Tidyverse = c(
+    "Intuitive and user-friendly syntax.",
+    "Decent for small, medium datasets.",
+    "Highly readable and beginner-friendly.",
+    "Excellent for tidy data workflows.",
+    "Higher due to temporary objects.",
+    "Requires multiple packages (e.g., `dplyr`).",
+    "Large and active.",
+    "Low, declarative and pipeline-based.",
+    "Simplifies common workflows, consistent.",
+    "Slower with large datasets, higher memory."
+  ),
+  data_table = c(
+    "Concise but steep learning curve.",
+    "Extremely fast for large datasets.",
+    "Compact but may sacrifice readability.",
+    "Great for advanced joins and aggregations.",
+    "Optimized for low memory usage.",
+    "Requires one package (`data.table`).",
+    "Smaller but growing.",
+    "High, unique syntax.",
+    "High performance, large data handling.",
+    "Less intuitive for beginners."
+  )
+)
+# Render the table with kable
+knitr::kable(comparison_table, format = "latex", col.names = c("Feature", "Base R", "Tidyverse", "data.table")) %>%
+  kableExtra::row_spec(0, bold = TRUE)  %>%
+  kableExtra::column_spec(2:4, width = "2.5cm")
+  #kableExtra::kable_styling(latex_options = "scale_down")
+```
+
+
+## Functions in `base R`, `tidyverse`, `data.table`
+
+\centering
+
+![](figures/base-tidy-dt-functions.jpg){width="400px"} \tiny <https://mgimond.github.io/rug_2019_12/Index.html>
+
+## Data wrangling functions in `dplyr`
+
+\scriptsize
+
+`tidyverse` is a set of R packages that share a common design philosophy, grammar, and data structures, making them work well together. `dplyr` is a core package in the `tidyverse` that is specifically designed for data wrangling.
+
+\vspace{10pt}
+
+```{r, eval = FALSE}
+filter()    # pick cases based on their values
+select()    # pick columns based on their names
+slice()     # pick rows by position
+arrange()   # change the ordering of rows
+group_by()  # allow operations by groups
+mutate()    # add new variables to a dataset
+summarise() # summarise multiple values
+count()     # count number of rows in a group
+add_row()   # add a row of data to a data frame
+```
+
+\centering
+
+\makebox[\textwidth]{(\href{https://jeremymack-lu.github.io/rprog/?panelset=logical&panelset1=programmatically&panelset2=programmatically2&panelset3=programmatically3&panelset4=tidyverse&panelset5=tidyverse2&panelset6=tidyverse3}{Lu 2020})}
+
+## Data wrangling functions in `tidyr`
+
+\scriptsize
+
+`tidyr` is another core package in the `tidyverse` with several useful data wrangling functions.
+
+\vspace{10pt}
+
+```{r, eval = FALSE}
+pivot_longer() # reshape from wide to long
+pivot_wider()  # reshape from long to wide
+separate()     # separate one column into several by a deliminator
+unite()        # unite several columns into one
+replace_na()   # replace NA values with a specified value
+fill()         # fill missing values in a column using the previous 
+               # or next value
+complete()     # ensure that a dataset has all combinations of 
+               # specified variables (filling in missing 
+               # combinations with NA or a specified value)
+```
+
+## The apply family in `base R`
+
+\scriptsize
+
+These are a family of powerful functions that are very useful for routine data wrangling tasks. They allow us to "apply" the same operation on each element of a data structure (and are much faster than using a loop).
+
+\vspace{10pt}
+
+```{r, eval = FALSE}
+apply(X, MARGIN, FUN) # operates over rows or columns of a matrix, 
+                      # returns a vector
+tapply(X, INDEX, FUN) # operates over vector grouped by index, returns vector
+sapply(X, FUN)        # operates over a vector or list, returns a vector
+lapply(X, FUN)        # operates over a vector or list, returns a list
+```
+
+## `apply()`
+
+\scriptsize
+
+```{r}
+# create matrix with dummy data
+my_matrix <- matrix(1:9, nrow = 3)
+my_matrix
+```
+\vspace{10pt}
+```{r}
+# return max of each row in my_matrix
+apply(my_matrix, 1, max)
+```
+\vspace{10pt}
+```{r}
+# return max of each column in my_matrix
+apply(my_matrix, 2, max)
+```
+
+## `lapply()` and `sapply()`
+
+\tiny
+
+```{r}
+# create list with dummy data
+my_list <- list(a = 1:3, b = 4:6)
+my_list
+```
+\vspace{10pt}
+```{r}
+# calculate the max of each element in the list and return as a list
+lapply(my_list, max)
+```
+\vspace{10pt}
+```{r}
+# calculate the max of each element in the list and return as a vector
+sapply(my_list, max)
+```
+
+## `lapply()` example
+
+\scriptsize
+
+Imagine that `l_ir` is a list containing the individual recode file from multiple DHS surveys. We can use `lapply()` to clean them all at once.
+
+\vspace{1em}
+
+```{r, eval = FALSE}
+# define our own function to clean the data
+fn_cleanIR <- function(x){
+  
+  x$weight <- x$v005/1000000
+  
+  if("v024" %in% names(x)){
+    x$region_name <- haven::as_factor(x$v024)
+  }else{
+    x$region_name <- haven::as_factor(x$v101)
+  }
+  
+  return(x)
+}
+
+# apply the function to each element in the l_ir list
+l_ir_clean <- lapply(l_ir, fn_cleanIR)
+```
+
+# Data transformation
+
+## Load R2HC data
+
+\scriptsize
+
 ```{r, echo = FALSE}
 rm(list = ls())
-yourFilePath <- "C:/Users/HEilerts/Institute of International Programs Dropbox/Hallie Eilerts-Spinelli/Teaching/AppliedDataAnalysis"
+yourFilePath <- "C:/Users/HEilerts/Institute of International Programs Dropbox/Hallie Eilerts-Spinelli/Teaching/AppliedDataAnalysis/jhbsph-applied-data-analysis-2025/data/"
 ```
 
 ```{r}
-# package for data manipulation
-library(tidyverse)
-
-dat <- read.csv(paste0(yourFilePath, "/jhbsph-applied-data-analysis-2025/gen/r2hc-exploration-20250408.csv"))
+# load packages
+library(haven)
+library(dplyr)
+library(ggplot2)
 ```
+
+```{r, eval = FALSE}
+# clear environment
+rm(list = ls())
+```
+
+```{r}
+# writing haven:: before the read_dta function is optional
+r2hc <- haven::read_dta(paste0(yourFilePath, 
+                               "./R2HC/R2HC-abbrev_MainPaperData.dta"))
+# assign factor labels as values
+r2hc <- haven::as_factor(r2hc, levels = "labels")
+# convert all factors to characters
+r2hc <- r2hc %>% mutate_if(is.factor, as.character)
+r2hc <- as.data.frame(r2hc)
+```
+
+## Load DHS data
+
+\scriptsize
+
+```{r, eval = FALSE}
+ir <- read_dta(paste0(yourFilePath, 
+                      "/BD_2022_DHS_03042025_2114_120781/BDIR81DT/BDIR81FL.dta"))
+kr <- read_dta(paste0(yourFilePath, 
+                      "/BD_2022_DHS_03042025_2114_120781/BDKR81DT/BDKR81FL.dta"))
+hr <- read_dta(paste0(yourFilePath, 
+                      "/BD_2022_DHS_03042025_2114_120781/BDHR81DT/BDHR81FL.dta"))
+```
+
+```{r, echo = FALSE}
+# # test sets while making slides
+# brshort <- br[1:200,]
+# irshort <- ir[1:200,]
+# krshort <- kr[1:200,]
+#hrshort <- hr[1:200,]
+# write_dta(brshort, paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/brshort.dta"))
+# write_dta(irshort, paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/irshort.dta"))
+#write_dta(krshort, paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/krshort.dta"))
+#write_dta(hrshort, paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/hrshort.dta"))
+#br <- haven::read_dta(paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/brshort.dta"))
+ir <- haven::read_dta(paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/irshort.dta"))
+kr <- haven::read_dta(paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/krshort.dta"))
+hr <- haven::read_dta(paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/hrshort.dta"))
+```
+```{r}
+# assign factor labels as values
+ir <- as_factor(ir, levels = "labels")
+kr <- as_factor(kr, levels = "labels")
+hr <- as_factor(hr, levels = "labels")
+```
+
+
 
 ## Merging
 
@@ -71,81 +421,126 @@ Merging is a cornerstone of data management and analysis which allows you to aug
 
 \makebox[\textwidth]{(\href{https://rforhr.com/join.html}{rforhr})}
 
-## Merge on summary data
+## DHS merging example
 
-\tiny
+\scriptsize
+
+Merge child recode with mothers in individual recode file.
 
 ```{r}
-# select subset of rows and columns
-dat_small <- dat[1:50, c("id_child", "time_datacollect","wt_chld")]
-head(dat_small)
+# v001 cluster number
+# v002 household number
+# v003 respondent's line number
+# v106 mother's education
+
+# individual recode file
+mother <- ir[,c("v001", "v002", "v003", "v106")]
+# child recode file
+child  <- kr[,c("v001", "v002", "v003")]
+
+dat_merge <- merge(child, mother, by = c("v001", "v002", "v003"))
+head(dat_merge)
 ```
+
+## Merge arguments
+
+\scriptsize
+
+If a column is not being merged on (i.e., does not appear in `by()`) and it is present in both data frames, you can add suffixes to distinguish the two columns from one another in the merged data frame.
+
+\vspace{10pt}
+
+```{r}
+# v024 division
+mother <- ir[,c("v001", "v002", "v003", "v024")]
+child  <- kr[,c("v001", "v002", "v003", "v024")]
+
+dat_merge <- merge(child, mother, by = c("v001", "v002", "v003"), 
+                   suffixes = c(".ch",".mth"))
+head(dat_merge)
+```
+
+## Merge arguments
+
+\scriptsize
+
+By default, only matching observations will be retained. You can add arguments to `merge()` to override this behavior.
+
+\vspace{10pt}
+
+```{r, eval=FALSE}
+# keep all observations in child
+merge(child, mother, by = "id_child", all.x = TRUE)
+# keep all observations in mother
+merge(child, mother, by = "id_child", all.y = TRUE)
+# keep all observations in child and mother
+merge(child, mother, by = "id_child", all = TRUE)
+```
+
+Equivalent operations using dplyr:
+
+\vspace{10pt}
+
+```{r, eval = FALSE}
+# keep all observations in child
+left_join(child, mother, by = "id_child")
+# keep all observations in mother
+right_join(child, mother, by = "id_child")
+# keep all observations in child and mother
+full_join(child, mother, by = "id_child")
+```
+
+## R2HC merging example
+
+\scriptsize
+
+Sometimes you may want to summarize data and merge back onto the same data frame. For example...
+
 \vspace{10pt}
 
 ```{r}
 # calculate average weight per child
-avg_wt <- aggregate(wt_chld ~ id_child, data = dat_small, FUN = mean, na.rm = TRUE)
+avg_wt <- aggregate(wt_chld ~ id_child, data = r2hc, 
+                    FUN = mean, na.rm = TRUE)
+# name columns
 names(avg_wt) <- c("id_child", "wt_chld_avg")
 head(avg_wt)
 ```
 \vspace{10pt}
 
-```{r}
+```{r, eval = FALSE}
 # merge back to data
-dat_merge <- merge(dat_small, avg_wt, by = "id_child")
-head(dat_merge)
+dat_merge <- merge(r2hc, avg_wt, by = "id_child")
 ```
 
-## Merging pitfalls (I)
+## R2HC merging example
+
+However, it is worth noting that there are other ways of doing this that avoid merging. 
 
 \scriptsize
 
-Be careful not to lose any observations when merging! By default, only observations with id variables in each data frame will be retained. You can add arguments to `merge()` to override this behavior.
+In base R:
 
-\tiny
-
-```{r, eval=FALSE}
-# keep all observations in x 
-merge(dat_small, avg_wt, by = "id_child", all.x = TRUE)
-# keep all observations in y
-merge(dat_small, avg_wt, by = "id_child", all.y = TRUE)
-# keep all observations in x and y 
-merge(dat_small, avg_wt, by = "id_child", all = TRUE)
+```{r, eval = FALSE}
+# wt_chld is grouped by id_child and we apply the mean() function
+avg_wt <- tapply(r2hc$wt_chld, r2hc$id_child, mean, na.rm = TRUE)
+# add the average weight as a new column to the original dataset
+r2hc$avg_wt <- avg_wt[r2hc$id_child]
 ```
 
-## Merging pitfalls (II)
+Using dplyr:
 
-\scriptsize
-
-If you want non-matching observations to be dropped, make sure to be aware of how many.
-
-\tiny
-
-```{r}
-dat_small2 <- dat[25:75, c("id_child", "time_datacollect","wt_chld")]
-dat_merge2 <- merge(dat_small2, avg_wt, by = "id_child")
-
-# number of rows and unique id_child in dat_small2
-nrow(dat_small2)
-length(unique(dat_small2$id_child))
-
-# number of rows and unique id_child in merged dataset
-nrow(dat_merge2)
-length(unique(dat_merge2$id_child))
-
-# number of id_child that were dropped during the merge
-sum(!(unique(dat_small2$id_child) %in% unique(dat_merge2$id_child)))
-# id_child that were dropped
-unique(dat_small2$id_child)[!(unique(dat_small2$id_child) %in% unique(dat_merge2$id_child))]
+```{r, eval = FALSE}
+r2hc <- r2hc %>%
+  group_by(id_child) %>%
+  mutate(avg_wt = mean(wt_chld, na.rm = TRUE))
 ```
 
 ## Reshaping
 
 \scriptsize
 
-Data can be displayed in wide or long format. The information is the same, though the layout differs.
-
-It is common to go back and forth between wide and long formats depending what kind of operations we are performing. Most statistical modeling functions expect data in the long format. 
+Data can be displayed in \textcolor{JHOrange}{wide} or \textcolor{JHOrange}{long} format. The information is the same, though the layout differs.
 
 \centering
 
@@ -154,167 +549,178 @@ It is common to go back and forth between wide and long formats depending what k
 
 \makebox[\textwidth]{(\href{https://www.statology.org/cast-in-r/}{statology})}
 
+\raggedright
+
+\scriptsize
+
+It is common to go back and forth between wide and long formats depending what kind of operations we are performing. Most statistical modeling functions expect data in the long format. 
 
 ## Long data
 
 \scriptsize
 
-`long` format will have multiple records (rows) for each individual, with the time-constant variables being constant across these records and the time-varying variables varying across the records. 
+\textcolor{JHOrange}{Long} format has multiple records (rows) for each entity (e.g., individual), with the time-constant variables repeated across these records and the time-varying variables varying. 
 
 \vspace{10pt}
 
-\tiny
 
 ```{r}
-# select subset of rows and columns
-dat_small <- dat[1:50, c("id_child", "time_datacollect","wt_chld")]
-
-head(dat_small)
+head(r2hc[, c("id_child", "sex_chld", "time_datacollect", "wt_chld")])
 ```
 
 ## Reshape wide
 
 \scriptsize
 
-`wide` format of a longitudinal dataset will have one record (row) for each unit. Typically some time-constant variables occupy single columns and some time-varying variables occupy multiple columns (one column for each time point). 
+\textcolor{JHOrange}{Wide} format of a longitudinal dataset will have one record (row) for each entity. Typically time-constant variables occupy single columns and some time-varying variables occupy multiple columns (one column for each time point). 
 
 \vspace{10pt}
 
-\tiny
-
 ```{r}
 # reshape data wide
-dat_wide <- reshape(dat_small,
+dat <- r2hc[, c("id_child", "sex_chld", "time_datacollect", "wt_chld")]
+dat_wide <- reshape(dat,
                     timevar = "time_datacollect",
                     idvar = "id_child",
                     v.names = "wt_chld",
                     direction = "wide")
-
 head(dat_wide)
 ```
 
-## Reshape long
+## Reshape back long
 
-\tiny
+\scriptsize
 
 ```{r}
 dat_long <- reshape(dat_wide,
                     idvar = "id_child",
-                    varying = list(names(dat_wide)[grep("wt_chld", names(dat_wide))]),
+                    varying = names(dat_wide)[grep("wt_chld", names(dat_wide))],
                     timevar = "time_point",
                     v.names = "weight",
                     direction = "long")
 dat_long <- dat_long[order(dat_long$id_child, dat_long$time_point),]
 head(dat_long)
 ```
+
 \vspace{10pt}
 
 \scriptsize
 
-Note that the `reshape()` function has converted `timevar` to an integer.
+Note that the `reshape()` function has converted the time variable to an integer. If your data has columns of mixed types, `reshape()` will change the types in order to produce a consistent output.
 
-## Reshaping with tidyverse (I)
+## Reshape with tidyr
+
+\scriptsize
+
+The `tidyr` functions for reshaping have nice flexibility and are designed to preserve the original data types.
+
+\vspace{10pt}
 
 \tiny
 
 ```{r}
-dat_wide <- dat_small %>%
+dat_wide <- dat %>%
   pivot_wider(
     names_from = time_datacollect,
     values_from = wt_chld,        
-    names_prefix = ""            
+    names_prefix = "time_"            
   )
 head(dat_wide)
 ```
-\vspace{10pt}
+
+## Reshape with tidyr
 
 ```{r}
 dat_long <- dat_wide %>%
   pivot_longer(
-    cols = -id_child, # Select all columns except the identifier
-    names_to = "observation",  # Column name for the new time variable
-    values_to = "weight"  # Column name for the values
+    cols = -c(id_child, sex_chld), # pivot all but these columns
+    #cols = starts_with("time"),   # alternatively, specify to pivot these columns
+    names_to = "observation",
+    values_to = "weight"
   )
 head(dat_long)
 ```
 
-## Reshaping with tidyverse (II)
+# Dealing with missing values
+
+## Check for missing values in R2HC
+
+\scriptsize
 
 ```{r}
-# rehape all columsn with prefix "yest" that contain characters
-dat_long <- dat %>%
-  select(id_child, time_datacollect, starts_with("yest") & where(is.character)) %>% 
-  pivot_longer(
-    cols = starts_with("yest"), 
-    names_to = "variable", 
-    values_to = "value"  
-  )
-head(dat_long)
+missing_wt <- r2hc %>%
+  select(id_child, time_datacollect, wt_mother) %>%
+  mutate(time_datacollectFac = factor(time_datacollect, 
+                               levels = c("Baseline", "Midline", "Endline"))) %>%
+  arrange(id_child, time_datacollectFac) %>% 
+  mutate(flag = ifelse(is.na(wt_mother), 1, 0)) %>%
+  group_by(id_child) %>%
+  mutate(flag = max(flag)) %>%
+  filter(flag == 1)  %>%
+  ungroup() %>%
+  select(id_child, time_datacollectFac, wt_mother)
+  
+head(missing_wt)
 ```
 
-## De-duplication
+## Complete
+
+\scriptsize
+
+There are explicitly missing values (i.e., you can see an NA) and implicitly missing ones (i.e., an entire row of data is simply absent from the data).
+
+In this example, we will ensure that every child has a row for baseline, midline, and endline.
 
 ```{r}
-dat_id <- dat[,c("hhid", "id_child")]
-head(dat_id)
+nrow(missing_wt)
 ```
-\vspace{10pt}
 
 ```{r}
-head(dat_id[!duplicated(dat_id),])
+missing_wt_comp <- missing_wt %>%
+  complete(id_child, time_datacollectFac, 
+           fill = list(wt_mother = NA))
+nrow(missing_wt_comp)
 ```
 
-\vspace{10pt}
-
-```{r, eval = FALSE}
-# with tidyverse
-dat %>%
-  select(hhid, id_child) %>%
-  unique %>%
-  head
-```
-
-## Extrapolation
 
 \tiny
 
-```{r}
-dat %>%
-  select(id_child, time_datacollect, wt_mother) %>%
-  head()
-```
+\makebox[\textwidth]{(\href{https://r4ds.hadley.nz/missing-values.html}{r4ds})}
 
-\vspace{10pt}
+
+## Fill down and up
+
+\scriptsize
+
+Now we will use tidyr's `fill` to flat extrapolate wt_mother forwards and backwards.
 
 ```{r}
-# flat extrapolation of wt_mother forwards and backwards
-dat %>%
-  select(id_child, time_datacollect, wt_mother) %>%
-  mutate(time_datacollect_fac = factor(time_datacollect, 
-                               levels = c("Baseline", "Midline", "Endline")),
-         wt_mother_ext = wt_mother) %>%
-  arrange(id_child, time_datacollect_fac) %>%
+missing_wt_comp %>%
+  mutate(wt_mother_ext = wt_mother) %>%
   group_by(id_child) %>%
   fill(wt_mother_ext, .direction = "downup") %>%
   head()
 ```
+
+## coalesce
+
+https://r4ds.hadley.nz/missing-values.html
+
+## na_if
 
 ## Linear interpolation
 
-\tiny
+\scriptsize
+
+Alternatively, we can use a function from the zoo package to linearly interpolate between baseline and endline values of wt_mother. We will use this value if available and the flat extrapolation otherwise.
 
 ```{r}
-# linearly interpolate between values
 library(zoo)
-dat %>%
-  select(id_child, time_datacollect, wt_mother) %>%
-  mutate(time_datacollect_fac = factor(time_datacollect, 
-                               levels = c("Baseline", "Midline", "Endline")),
-         wt_mother_ext = wt_mother) %>%
-  arrange(id_child, time_datacollect_fac) %>%
+missing_wt_comp %>%
+  mutate(wt_mother_ext = wt_mother) %>%
   group_by(id_child) %>%
   fill(wt_mother_ext, .direction = "downup") %>%
-  mutate(wt_mother_int = na.approx(wt_mother, time_datacollect_fac, rule = 2, na.rm = FALSE)) %>%
+  mutate(wt_mother_int = na.approx(wt_mother, time_datacollectFac, rule = 2, na.rm = FALSE)) %>%
   mutate(wt_mother_new = ifelse(!is.na(wt_mother_int), wt_mother_int, wt_mother_ext)) %>%
   head()
 ```
@@ -323,25 +729,176 @@ dat %>%
 
 # Descriptive analysis
 
-## Outlier detection
+## Summarizing data
 
-## Summary statistics
+\scriptsize
 
-```         
-We can generate summary statistics using the summary() command.
-    do values make sense?
-    are there any missing values?
-We can also zoom in on specific columns
-    let's start making sense of the retail_and_recreation_percent_change_from_baseline variable: what does it mean?
-    let's plot this variable over time!
-If our target unit of analysis is different from the unit of analysis in the current data set, we can also use aggregation.
+Helpful functions for summarizing data in R:
+
+```{r, eval = FALSE}
+mean()        # average of the input values
+min()         # minimum value of the input values
+max()         # maximum value of the input values
+range()       # range of the intput values
+sd()          # standard deviation of the input values
+length()      # length of the input values
 ```
 
-## Univariate statistics
+## Histograms
+
+\scriptsize
+
+Histograms are useful tools for detecting outliers in continuous data. Here is a histogram using the base R plotting function.
+
+```{r fig.width=6, fig.height=3, fig.align='center', dpi=300, out.width="100%"}
+hist(r2hc$ht_chld, breaks = 50)
+```
+
+## Histograms
+
+\scriptsize
+
+Here is a histogram using the ggplot2 package.
+
+```{r fig.width=6, fig.height=3, fig.align='center', dpi=300, out.width="100%"}
+ggplot(r2hc) +
+  geom_histogram(aes(x = wt_chld), bins = 30)
+```
+
+## Boxplots
+
+\tiny
+
+Boxplots are also useful to detect potential outliers in continuous data.
+
+```{r fig.width=6, fig.height=3, fig.align='center', dpi=300, out.width="80%"}
+# note the normalization of values in mutate()
+r2hc %>%
+  select(where(is.numeric)) %>%
+  select(-c(starts_with("id"), "hhid")) %>%
+  mutate((. - min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE))) %>%
+  pivot_longer(cols = everything()) %>%
+  ggplot(aes(x = name, y = value)) +
+  geom_boxplot() +
+  coord_flip() + theme(text = element_text(size = 8))
+```
+
+## Boxplot stats
+
+\tiny
+
+```{r}
+# calculate boxplot statistics manually
+r2hc %>%
+  select(where(is.numeric)) %>%
+  pivot_longer(cols = everything()) %>%
+  group_by(name) %>%
+  summarise(
+    ymin = min(value, na.rm = TRUE),
+    Q1 = quantile(value, 0.25, na.rm = TRUE),
+    median = median(value, na.rm = TRUE),
+    Q3 = quantile(value, 0.75, na.rm = TRUE),
+    ymax = max(value, na.rm = TRUE)
+  )
+```
+
+## Distribution of categorical variables
+
+\tiny
+
+```{r fig.width=6, fig.height=3, fig.align='center', dpi=300, out.width="80%"}
+r2hc %>%
+  select(c("region", "district", "stunt_cat", "wast_cat")) %>%
+  pivot_longer(cols = everything()) %>% 
+  ggplot(aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~name, scales = "free", ncol = 1) +
+  coord_flip() +
+  theme(text = element_text(size = 8)) 
+```
+
+## Bivariate plot
+
+```{r}
+plot(r2hc$wt_chld, r2hc$ht_chld)
+```
 
 ## Bivariate statistics
 
-## Basic visualizations
+\scriptsize
 
-## Exporting results
+We will look at children age 6-59m given deworming medication by mother's education in the BD2022DHS. The code to calculate this and other indicators from the DHS is available in the \href{DHS github}{https://github.com/DHSProgram/DHS-Indicators-R/}.
+
+```{r}
+# individual sample weight
+kr$wt <- kr$v005/1000000
+# v008 date of interview
+# b3 date of birth
+kr$age_months <- kr$v008 - kr$b3
+kr$nt_ch_micro_dwm <- "No"
+kr$nt_ch_micro_dwm[(kr$h43 == "yes")] <- "Yes"
+# b5 child is alive
+kr$nt_ch_micro_dwm[(kr$age_months <6 | kr$age_months > 59 | kr$b5 == "no")] <- NA
+
+
+# merge on mother's education
+kr_mom <- merge(kr[,c("v001", "v002", "v003", "wt", "nt_ch_micro_dwm")], 
+                ir[,c("v001", "v002", "v003", "v106")], 
+                 by = c("v001", "v002", "v003"), all.x = TRUE)
+
+# compute weighted proportion by mother's education
+kr_mom %>%
+  group_by(v106, nt_ch_micro_dwm) %>%
+  summarise(n = sum(wt), .groups = "drop") %>%
+  filter(!is.na(nt_ch_micro_dwm)) %>%
+  group_by(v106) %>% 
+  mutate(per = n / sum(n))
+```
+
+## Plot bivariate
+
+\scriptsize
+
+```{r fig.width=6, fig.height=3, fig.align='center', dpi=300, out.width="80%"}
+kr_mom %>%
+  group_by(v106, nt_ch_micro_dwm) %>%
+  summarise(n = sum(wt), .groups = "drop") %>%
+  filter(!is.na(nt_ch_micro_dwm)) %>%
+  group_by(v106) %>% 
+  mutate(per = n / sum(n)) %>%
+  ggplot() +
+  geom_bar(aes(x = v106, y = per, fill = nt_ch_micro_dwm), 
+           stat = "identity")
+```
+
+## Chi-squared test
+
+\scriptsize
+
+```{r, eval = FALSE}
+contingency_tab <- kr_mom %>%
+  group_by(v106, nt_ch_micro_dwm) %>%
+  summarise(n = sum(wt)) %>%
+  filter(!is.na(nt_ch_micro_dwm)) %>%
+  pivot_wider(
+    names_from = nt_ch_micro_dwm,
+    values_from = n
+  )
+chisq.test(contingency_tab[,-1])
+```
+
+## Other
+
+scatterplots
+pearson correlation
+ANOVA
+simple linear regression
+t-test
+
+
+## Output
+
+use Rmarkdown? Cover briefly how to.
+
+## Exporting basic statistics
 
