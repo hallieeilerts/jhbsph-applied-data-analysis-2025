@@ -1,64 +1,1269 @@
 ---
-title: "7 - Advanced data visualization"
+title: "7 - Advanced data visualization "
 author: | 
-  | Hallie Eilerts-Spinelli
-  | \texttt{\href{mailto:heilert1@jh.edu}{heilert1@jh.edu}}
-  | Johns Hopkins Bloomberg School of Public Health
   | Applied Data Analysis
-date: "March 2025"
+  | Nadia Akseer, Emily Keats
+  | \href{mailto:heilert1@jh.edu}{Hallie Eilerts-Spinelli}
+  | TA: Pranab Chatterjee \vspace{-1em}
+date: "May 2025"
 output: 
    beamer_presentation:
     keep_tex: true
     latex_engine: xelatex
+    theme: "Darmstadt"
     highlight: espresso
-    toc: true
+    toc: false
 header-includes:
-  - \input{myheader.tex}
+  - \input{myheader_darmstadt.tex}
 colorlinks: true
-urlcolor: JHBlue
 linkcolor: HeritageBlue
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE, echo = FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.align="center")
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align="center")
 options(tinytex.verbose = TRUE)
 library(knitr)
 library(kableExtra)
 library(tidyr)
+
+knitr::opts_chunk$set(dev = "cairo_pdf")  # instead of dev = "CairoPNG"
+# Explicitly disable showtext in this session
+if ("package:showtext" %in% search()) showtext::showtext_auto(FALSE)
+#theme_set(ggplot2::theme_classic(base_family = ""))
+```
+
+# Introduction
+
+## Course schedule
+
+-  Lab 7 - Friday, May 9
+   - Lab output due by 12pm on Tuesday, May 13
+-  Lecture 8 - Tuesday, May 13
+-  Lab 8 - Friday, May 16
+-  Final project due May 20
+
+## Final assignment
+
+-  Summarizes progress made throughout course
+-  Written report
+    -  20-30 pages maximum
+    -  Double spaced
+    -  Including tables, figures, references
+    -  If you're a few pages short of 20 but have covered all you need, that's ok
+-  Should include at a minimum
+    -  Research question 
+    -  Methods
+    -  Brief description of dataset
+    -  Data analysis methods
+    -  Results, including any tables/figures
+    -  Interpretation of results
+    -  Critique of methods  
+
+## Today's agenda
+
+-  Plots
+    -  ggplot explanation
+    -  themes
+    -  font
+    -  legend
+    -  dates
+    -  ordering factors?
+    -  color palettes
+    -  adding text
+    -  facets (nrow, ncol, scales = free y)
+    -  made pdf with multiple pages of plots
+    -  plotly?
+-  Tables
+    - formatting in word vs html
+    - stargazer for regression tables
+-  Maps
+-  Rmarkdown
+
+other:
+
+- Advanced data visualization; construction of common tables and figures to visualize key findings for dissemination  
+- E.g. advanced visualizations for preparing findings, automating visualizations/outputs
+
+## Prepare session
+
+\scriptsize
+
+```{r}
+# clear environment
+rm(list = ls())
+```
+
+```{r, echo = FALSE}
+rm(list = ls())
+yourFilePath <- "C:/Users/HEilerts/Institute of International Programs Dropbox/Hallie Eilerts-Spinelli/Teaching/AppliedDataAnalysis/jhbsph-applied-data-analysis-2025/data/"
+```
+
+```{r}
+# load packages
+library(haven)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+```{r, eval = FALSE}
+# set your working directory (not necessary if using an Rproject)
+setwd()
+```
+
+```{r, eval = FALSE}
+# load data
+ir <- read_dta(paste0(yourFilePath, 
+        "/BD_2022_DHS_03042025_2114_120781/BDIR81DT/BDIR81FL.dta"))
+kr <- read_dta(paste0(yourFilePath, 
+        "/BD_2022_DHS_03042025_2114_120781/BDKR81DT/BDKR81FL.dta"))
+r2hc <- read_dta(paste0(yourFilePath, 
+          "./R2HC/R2HC-abbrev_MainPaperData.dta"))
+```
+
+```{r, eval = TRUE, echo = FALSE}
+ir <- haven::read_dta(paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/irshort.dta"))
+kr <- haven::read_dta(paste0(yourFilePath, "/BD_2022_DHS_03042025_2114_120781/krshort.dta"))
+r2hc <- read_dta(paste0(yourFilePath, "./R2HC/R2HC-abbrev_MainPaperData.dta"))
+```
+
+## Data prep
+
+\scriptsize
+
+```{r}
+# select subset of variables
+# convert labelled to factors and then characters
+# convert some back to factors, setting levels
+dat <- r2hc %>%
+  #select(id_child, district, sex_chld, time_datacollect, 
+  #       age_chld, wt_chld, ht_chld, stunt_cat, waz,
+  #       hh_members, exp_food_monthly) %>%
+  mutate(across(where(is.labelled), ~as.character(as_factor(.)))) %>%
+  mutate(time_datacollect = factor(time_datacollect, 
+          levels = c("Baseline", "Midline", "Endline")),
+         stunt_cat = factor(stunt_cat, 
+          levels = c("Not Stunted", "Moderately Stunted", "Severely Stunted")))
+```
+
+# ggplot
+
+## `ggplot2`
+
+\href{https://ggplot2.tidyverse.org/articles/ggplot2.html}{ggplot2} is an R package for producing visualizations of data.
+
+-  It has an underlying grammar that allows you to compose graphs by combining independent components
+-  Rather than being limited to sets of pre-defined graphics, you can create novel graphics that are tailored to your specific problem
+-  It is the most widely used package for data visualizations in R
+
+\centering
+
+![](figures/ggplot2Hex.jpg){width="100px"}
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2.tidyverse.org/articles/ggplot2.html}{ggplot2.tidyverse.org})}
+
+
+## Composable parts of a ggplot
+
+\footnotesize
+
+There are 7 composable parts that come together as a set of instructions on how to draw a ggplot chart.
+
+\centering
+
+![](figures/composable-parts.png){width="270px"}
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2.tidyverse.org/articles/ggplot2.html}{ggplot2.tidyverse.org})}
+
+## Data
+
+\scriptsize
+
+All plots are composed of the \textcolor{JHOrange}{data} and a \textcolor{JHOrange}{mapping}.
+
+As a first step, we pass the data to the `ggplot()` function. This creates the plot and stores the data to be used later by other parts of the plotting system. We'll use a dummy dataset in R called `mpg`.
+
+\vspace{10pt}
+
+```{r, fig.height = 3}
+ggplot(mpg)
+```
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2-book.org/introduction.html}{ggplot2: Elegant Graphics for Data Analysis})}
+
+## Mapping
+
+\scriptsize
+
+The mapping can be made by using the `aes()` function. We'll map the displ and hwy columns to the x- and y-coordinates.
+
+\vspace{10pt}
+
+```{r, fig.height = 3}
+ggplot(mpg, mapping = aes(x = displ, y = hwy))
+```
+
+## Geoms
+
+\footnotesize
+
+A layer can be constructed using a \textcolor{JHOrange}{geom} functions. These functions specify how the data should be displayed (e.g., points, lines, bars).
+
+\vspace{10pt}
+
+\centering
+
+![](figures/geom-examples.png){width="350px"}
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://rstudio.github.io/cheatsheets/data-visualization.pdf}{ggplot2 cheatsheet})}
+
+## Layers
+
+\footnotesize
+
+Adding a points layer.
+
+\vspace{10pt}
+
+```{r, fig.height=4}
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point()
+```
+
+## Aesthetics
+
+\scriptsize
+
+In addition to the required *x* and *y* mapping in the `aes()` function, each geom can receive many other \textcolor{JHOrange}{aesthetics}. All geoms understand *color* and *size*. The filled geoms (bar, tile and polygon) also understand *fill*. There are lots of other aesthetics.
+
+`geom_point()` understands the following aesthetics (required aesthetics are in bold):
+
+-  **x**
+-  **y**
+-  `alpha`
+-  `colour`
+-  `fill`
+-  `group`
+-  `shape`
+-  `size`
+-  `stroke`
+
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2.tidyverse.org/reference/geom_point.html}{ggplot2.tidyverse.org})}
+
+## Adjusting aesthetics
+
+\scriptsize
+
+- You can map (inside `aes`) a variable of your data to an aesthetic
+- Or you can set (outside `aes`, but inside a geom element) an aesthetic to a constant value
+
+\vspace{10pt}
+
+\tiny
+
+\columnsbegin
+
+\column{.5\textwidth}
+
+```{r, fig.height = 4.5, fig.width = 4.5}
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(aes(color = class))
+```
+
+\column{.5\textwidth}
+
+```{r, fig.height = 4.5, fig.width = 4.5}
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(color = "blue")
+```
+
+\columnsend
+
+## Statistical transformations
+
+\footnotesize
+
+Some layers include parameters for \textcolor{JHOrange}{statistical transformations} that can compute new variables from the data for display (e.g., fitting a smoothed line, calculating standard errors, binning, counting).
+
+\vspace{10pt}
+
+\scriptsize
+
+```{r, fig.height = 4}
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point() + 
+  geom_smooth()
+```
+
+## Adding more layers
+
+\footnotesize
+
+Note that if the data and mapping are in `ggplot()`, it gets passed to all layers. 
+
+\vspace{10pt}
+
+\scriptsize
+
+```{r, fig.height = 4}
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point() + 
+  geom_smooth(method = "loess") + 
+  geom_smooth(method = "lm", color = "red")
+```
+
+## Position
+
+\footnotesize
+
+Some layers also include parameters for \textcolor{JHOrange}{position} adjustment (e.g., identity, jittering, stacking, dodging). This determines where a piece of data is being displayed.
+
+\vspace{10pt}
+
+\scriptsize
+
+```{r, fig.height = 4}
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point(position = position_jitter(width = 0.05, height = 0.5)) + 
+  geom_smooth(method = "loess") + 
+  geom_smooth(method = "lm", color = "red")
+```
+
+## Position - bar plots
+
+\footnotesize
+
+The \textcolor{JHOrange}{position} adjustment can be particularly useful for `geom_bar`.
+
+\vspace{10pt}
+
+\tiny
+
+```{r}
+base <- ggplot(mpg, aes(class, fill = factor(cyl)))
+```
+
+```{r, echo = FALSE}
+base <- ggplot(mpg, aes(class, fill = factor(cyl))) + 
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+\columnsbegin
+
+\column{.3\textwidth}
+
+```{r, fig.height=4, fig.width = 3}
+base + geom_bar()
+```
+
+\column{.3\textwidth}
+
+```{r, echo = FALSE}
+base <- ggplot(mpg, aes(class, fill = factor(cyl))) + 
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r, fig.height=4, fig.width = 3}
+base + 
+  geom_bar(position = "fill")
+```
+
+\column{.3\textwidth}
+
+```{r, echo = FALSE}
+base <- ggplot(mpg, aes(class, fill = factor(cyl))) + 
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r, fig.height=4, fig.width = 3}
+base + 
+ geom_bar(position = 
+  position_dodge(
+    preserve = "single"), 
+  width = 1
+ )
+```
+
+\columnsend
+
+\makebox[\textwidth]{(\href{https://ggplot2-book.org/layers.html}{ggplot2: Elegant Graphics for Data Analysis})}
+
+## Scales
+
+\columnsbegin
+
+\column{.5\textwidth}
+
+\footnotesize
+
+\begin{itemize}
+    \item Scales map values in the data space to values in the aesthetic space
+    \item This includes the use of color, shape, or size
+    \item Scales also draw the legend and axes
+\end{itemize}
+
+\column{.5\textwidth}
+
+\tiny
+
+```{r, fig.height = 5, fig.width = 5}
+ggplot(mpg, aes(cty, hwy, color = drv)) +
+  geom_point() +
+  scale_color_manual(values = 
+                    c("red", "blue", "orange")) +
+  scale_y_continuous(breaks = c(15, 25, 35, 45))
+```
+
+\columnsend
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2.tidyverse.org/articles/ggplot2.html}{ggplot2.tidyverse.org})}
+
+## Coordinates
+
+\columnsbegin
+
+\column{.5\textwidth}
+
+\footnotesize
+
+\begin{itemize}
+  \item Coordinates describe how data are mapped to the graphic
+  \item Cartesian coordinates are default
+  \item There are also coordinates for maps or polar plots
+  \item Can use coordinates to display a fixed aspect ratio
+  \item Default aspect ratio is 1, ensuring that one unit on the y-axis is the same length as one unit on the x-axis (y/x)
+\end{itemize}
+
+\column{.5\textwidth}
+
+\tiny
+
+```{r, fig.height = 5, fig.width = 5}
+ggplot(mpg, aes(cty, hwy)) +
+  geom_point() +
+  coord_fixed(2)
+```
+
+\columnsend
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2.tidyverse.org/articles/ggplot2.html}{ggplot2.tidyverse.org})}
+
+
+## Facets
+
+\columnsbegin
+
+\column{.3\textwidth}
+
+\footnotesize
+
+\begin{itemize}
+    \item Facets specify how to break up and display subsets of data based on one or more variables
+    \item A quick tool to display patterns/trends within subsets
+\end{itemize}
+
+\column{.7\textwidth}
+
+\tiny
+
+```{r}
+ggplot(mpg, aes(cty, hwy)) +
+  geom_point() +
+  facet_wrap(~ year)
+```
+
+\columnsend
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2-book.org/introduction.html}{ggplot2: Elegant Graphics for Data Analysis})}
+
+## facet_grid
+
+
+\columnsbegin
+\column{.3\textwidth}
+
+\footnotesize
+
+\begin{itemize}
+    \item facet\_wrap() “wraps” a 1d ribbon of panels into 2d
+    \item facet\_grid() produces a 2d grid of panels defined by variables which form the rows and columns
+\end{itemize}
+
+\column{.7\textwidth}
+
+\tiny
+
+```{r}
+mpg %>%
+  filter(class == "compact") %>%
+  ggplot(aes(cty, hwy)) +
+  geom_point() +
+  facet_grid(year ~ drv)
+```
+
+\columnsend
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2-book.org/facet.html}{ggplot2: Elegant Graphics for Data Analysis})}
+
+## Themes
+
+\columnsbegin
+\column{.3\textwidth}
+
+\scriptsize
+
+\begin{itemize}
+  \item Themes control almost any visuals of the plot that are not controlled by the data 
+  \item E.g., font size, background color, location of legend, etc.
+  \item One can use built-in themes or adjust specific aspects of a theme with the theme() function
+\end{itemize}
+
+\column{.7\textwidth}
+
+\tiny
+
+```{r, fig.height = 5}
+ggplot(mpg, aes(cty, hwy, color = class)) +
+  geom_point() +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    text = element_text(size = 24),
+    axis.line = element_line(linewidth = 0.75),
+    axis.line.x.bottom = element_line(color = "blue")
+  )
+```
+
+\columnsend
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://ggplot2.tidyverse.org/articles/ggplot2.html}{ggplot2.tidyverse.org})}
+
+## Themes
+
+\footnotesize
+
+Complete themes that come pre-loaded with `ggplot2`:
+
+\vspace{10pt}
+
+\scriptsize
+
+```{r, eval = FALSE}
+theme_bw()       # dark-on-light theme
+theme_linedraw() # black lines of various widths on white backgrounds
+theme_light()    # light grey lines and axes to direct more 
+                 # attention towards the data
+theme_dark()     # dark background
+theme_minimal()  # no background annotations
+theme_classic()  # x and y axis lines and no gridlines
+theme_void()     # completely empty themes
+```
+
+\makebox[\textwidth]{(\href{https://ggplot2.tidyverse.org/reference/ggtheme.html}{ggplot2.tidyverse.org})}
+
+## Saving plots
+
+
+
+# Customization
+
+## Default colors
+
+\tiny
+
+\columnsbegin
+
+\column{.5\textwidth}
+
+```{r, fig.height = 5, fig.width = 5}
+mybox <- mpg %>%
+  filter(manufacturer %in% 
+         c("audi", "honda", "subaru")) %>%
+  ggplot(aes(x=manufacturer, y = hwy, 
+             fill = manufacturer)) +
+  geom_boxplot()
+mybox
+```
+
+\column{.5\textwidth}
+
+\tiny
+
+```{r, fig.height = 5, fig.width = 5}
+myscatter <- mpg %>%
+  filter(manufacturer %in% 
+         c("audi", "honda", "subaru")) %>%
+  ggplot(aes(x=cty, y = hwy, 
+             color = manufacturer)) +
+  geom_point()
+myscatter
+```
+
+\columnsend
+
+## Choose colors
+
+\scriptsize
+
+\columnsbegin
+
+\column{.5\textwidth}
+
+There are \href{https://www.datanovia.com/en/blog/awesome-list-of-657-r-color-names/}{657 built-in color names} available in R.
+
+![](figures/predefinedcolors2.png){width="200px"}
+
+\column{.5\textwidth}
+
+R also accepts \href{https://www.w3schools.com/colors/colors_picker.asp}{hexadecimal} color names.
+
+\centering
+
+![](figures/hexcolor.png){width="100px"}
+
+\columnsend
+
+## Change colors manually
+
+\tiny
+
+\columnsbegin
+
+\column{.5\textwidth}
+
+```{r, fig.height = 5, fig.width = 5}
+mybox +
+  scale_fill_manual(values=
+   c("#1B9E77", "#D95F02", "#7570B3"))
+```
+
+\column{.5\textwidth}
+
+\tiny
+
+```{r, fig.height = 5, fig.width = 5}
+myscatter  +
+  scale_color_manual(values=
+   c("#1B9E77", "#D95F02", "#7570B3"))
+```
+
+\columnsend
+
+\centering
+
+\makebox[\textwidth]{(\href{https://www.sthda.com/english/wiki/ggplot2-colors-how-to-change-colors-automatically-and-manually}{sthda})}
+
+## Color palettes
+
+\scriptsize
+
+Instead of default or manually setting colors, you can provide the plot with a pre-made color palatte. The \href{https://r-graph-gallery.com/38-rcolorbrewers-palettes.html}{RColorBrewer} package has many options.
+
+![](figures/rcolorbrewer.png)
+
+## RColorBrewer
+
+\scriptsize
+
+```{r, fig.height = 2}
+library("RColorBrewer")
+# View a single RColorBrewer palette by specifying its name
+display.brewer.pal(n = 8, name = 'RdBu')
+```
+
+```{r, eval = FALSE}
+# Add to plot using RColorBrewer function
+scale_color_brewer(palette="RdBu")
+```
+
+```{r}
+# Extract hexadecimal color specifications and manually provide to plot
+brewer.pal(n = 3, name = "Dark2")
+```
+
+## wesanderson
+
+\scriptsize
+
+An R package containing color palettes derived from \href{https://github.com/karthik/wesanderson}{Wes Anderson movies}.
+
+\tiny
+
+```{r}
+library(wesanderson)
+names(wes_palettes)
+```
+
+\vspace{10pt}
+
+```{r, fig.height=1}
+wes_palette("BottleRocket2")
+```
+
+\vspace{10pt}
+
+```{r, eval = FALSE}
+# Add to plot within the scale_fill_manual or scale_color_manual functions
+scale_fill_manual(values = wes_palette("BottleRocket2"))
+```
+
+## Viridis
+
+\tiny
+
+The `viridis` R package contain palettes that represent good choices for color-blind friendly palettes and printing in gray scale.
+
+```{r, eval = FALSE}
+library(viridis)
+# Add to plot using viridis function
+scale_color_viridis(discrete=TRUE)
+scale_fill_viridis(option="magma")
+```
+
+![](figures/viridis.png){width="300px"}
+
+\centering
+
+\makebox[\textwidth]{(\href{https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html}{cran-viridis})}
+
+
+## Change color palette
+
+\tiny
+
+\columnsbegin
+
+\column{.5\textwidth}
+
+```{r, fig.height = 5, fig.width = 5}
+mybox +
+  scale_fill_manual(values=
+   wes_palette(n=3, name="GrandBudapest1"))
+```
+
+\column{.5\textwidth}
+
+\tiny
+
+```{r, echo = FALSE}
+library(viridis)
+```
+```{r, fig.height = 5, fig.width = 5}
+myscatter +
+ scale_color_viridis(discrete=TRUE)
+```
+
+\columnsend
+
+\makebox[\textwidth]{(\href{https://www.sthda.com/english/wiki/ggplot2-colors-how-to-change-colors-automatically-and-manually}{sthda})}
+
+
+## Legends
+
+\scriptsize
+
+Legends can be customized with the help of the `guide()` function.
+
+\tiny
+
+\vspace{10pt}
+
+\tiny
+
+```{r, eval = FALSE}
+base <- ggplot(mpg, aes(cyl, displ, colour = hwy)) + geom_point(size = 2)
+base + guides(colour = guide_colorbar(reverse = TRUE))
+base + guides(colour = guide_colorbar(barheight = unit(1, "cm")))
+base + guides(colour = guide_colorbar(direction = "horizontal"))
+```
+
+\columnsbegin
+
+\column{.3\textwidth}
+
+```{r, fig.height=4, fig.width = 3, echo = FALSE}
+base <- ggplot(mpg, aes(cyl, displ, colour = hwy)) + geom_point(size = 2)
+base + guides(colour = guide_colourbar(reverse = TRUE))
+```
+
+\column{.3\textwidth}
+
+```{r, fig.height=4, fig.width = 3, echo = FALSE}
+base + guides(colour = guide_colourbar(barheight = unit(1, "cm")))
+```
+
+\column{.3\textwidth}
+
+```{r, fig.height=4, fig.width = 3, echo = FALSE}
+base + guides(colour = guide_colourbar(direction = "horizontal"))
+```
+
+\columnsend
+
+\makebox[\textwidth]{(\href{https://ggplot2-book.org/scales-colour.html}{ggplot2: Elegant Graphics for Data Analysis})}
+
+
+## Axis scales
+
+\scriptsize
+
+Using these axis scales we can customize the axis titles (name), axis limits (limits), axis breaks (breaks), and tick labels (labels). 
+
+\vspace{10pt}
+
+```{r, eval = FALSE}
+scale_x_continuous() # for continuous x-axis values
+scale_y_continuous() # for continuous y-axis values
+scale_x_discrete()   # for categorical or qualitative x-axis values
+scale_y_discrete()   # for categorical or qualitative y-axis values
+scale_x_log10()      # transform to log scale (also available for y-axis)
 ```
 
 
-Advanced data visualization; construction of common tables and figures to visualize key findings for dissemination  
+https://hbctraining.github.io/publication_perfect/lessons/05_custom_plot_scales_colors.html
 
-E.g. advanced visualizations for preparing findings, automating visualizations/outputs
 
-# Hal to-do's
+## Themes
 
-## Still need to look at
+\tiny
 
-Full tutorial of data prep: <https://dprep.hannesdatta.com/docs/modules/week2/tutorial/intro-to-r> Full tutorial for engineering datasets: <https://dprep.hannesdatta.com/docs/modules/week4/tutorial/data-preparation>
+You’re not limited to the themes built-in to ggplot2. Other packages, like `ggthemes` add even more. 
+```{r, eval = FALSE}
+library(ggthemes)
+df <- data.frame(x = 1:3, y = 1:3)
+base <- ggplot(df, aes(x, y)) + geom_point()
+base + theme_tufte() + ggtitle("tufte")
+base + theme_economist() + ggtitle("economist")
+base + theme_solarized() + ggtitle("solarized")
+base + theme_stata() + ggtitle("stata")
+```
 
-## Resources
+```{r, echo = FALSE, out.width = "70%"}
+library(ggthemes)
+df <- data.frame(x = 1:3, y = 1:3)
+base <- ggplot(df, aes(x, y)) + geom_point()
+p1 <- base + theme_tufte() + ggtitle("tufte")
+p2 <- base + theme_economist() + ggtitle("economist")
+p3 <- base + theme_solarized() + ggtitle("solarized")
+p4 <- base + theme_stata() + ggtitle("stata")
+library(gridExtra)
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
 
-[R for Social Scientists](https://datacarpentry.github.io/r-socialsci/)
+\makebox[\textwidth]{(\href{https://ggplot2-book.org/themes.html}{ggplot2: Elegant Graphics for Data Analysis})}
 
-Data carpentry github: <https://github.com/datacarpentry/r-socialsci/blob/main/episodes/00-intro.Rmd>
 
-[Introduction to R](https://www.datacamp.com/courses/free-introduction-to-r)
+## Adjust plot text
 
-[Introduction to Github](https://github.com/skills/introduction-to-github)
+\scriptsize
 
-## References
+You can adjust text size, positioning, and font in the `theme()` function. The default font families recognized by R are mono, sans, and serif
 
-[RStudio User Guide](https://docs.posit.co/ide/user/)
+\tiny
 
-[R for Social Scientistics](https://datacarpentry.github.io/r-socialsci/index.html)
+```{r, out.width="70%"}
+mybox + 
+  labs(title = "my mpg boxplot") + 
+  theme(plot.title = element_text(family = "mono", size=16, hjust=1, face = "bold", color = "red"),
+        axis.title = element_text(family = "serif"),
+        axis.text.x = element_text(family = "sans", angle = 45, hjust = 1),
+        legend.position = "none")
+```
 
-[Tilburg Science Hub](https://tilburgsciencehub.com/)
+## Load custom fonts
 
-[ClaytonJY R style guide](https://github.com/ClaytonJY/R-Styleguide?tab=readme-ov-file)
+\scriptsize
 
-[Roman Pahl R bloggers style guide](https://www.r-bloggers.com/2019/11/my-r-style-guide/)
+If you want more font options, you can load system-installed fonts (`extrafont`) or fonts downloaded from Google (`showtext`).
 
-[Tilburg Science Hub](https://tilburgsciencehub.com/topics/automation/workflows/auditing/workflow-checklist/)
+```{r, eval = FALSE}
+library(extrafont)
+library(showtext)
+
+# import font files
+font_import(pattern = "\\.ttf$")
+# (will have to type "y" in console)
+
+# load fonts in this R session
+loadfonts(device = "win")
+
+# see which fonts are available
+windowsFonts()
+
+# search Google Fonts repository for Roboto font and add
+font_add_google(name = "Roboto", family = "roboto")
+showtext_auto()
+```
+
+
+# Viz for publication
+
+## Generate plot data
+
+\tiny
+
+```{r}
+# select columns and rows of interest
+# prepare for loess model
+pdat <- r2hc %>%
+  select(district, time_datacollect, age_chld, haz) %>%
+  mutate(across(where(is.labelled), ~as.character(as_factor(.)))) %>%
+  filter(time_datacollect == "Baseline") %>%
+  filter(complete.cases(.)) %>%
+  mutate(district_fac = as.numeric(factor(district)))
+
+# fit loess model
+model <- loess(haz ~ age_chld + district_fac, data = pdat)
+
+# use model to predict single haz value for each age/district
+pred <- data.frame(age_chld = rep(seq(min(pdat$age_chld), max(pdat$age_chld), 1),
+                                  times = length(unique(pdat$district))),
+                    district_fac = rep(unique(pdat$district_fac),
+                                  each = length(seq(min(pdat$age_chld), max(pdat$age_chld), 1))))
+pred$predicted <- predict(model, newdata = pred)
+# merge district names onto district factor
+pred <- pred %>%
+  left_join(distinct(pdat[,c("district", "district_fac")]))
+```
+
+## Basic plot
+
+\footnotesize
+
+Note that we are plotting two different data objects at once.
+
+\vspace{10pt}
+
+\tiny
+
+```{r, fig.width = 6, fig.height = 3}
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district)) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district))
+```
+
+## Adjust point aesthetics for clarity
+
+\tiny
+
+```{r, fig.width = 6, fig.height = 3}
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district))
+```
+
+## Use order of data in legend
+
+\tiny
+
+```{r, fig.width = 6, fig.height = 3}
+pred <- pred %>%
+  mutate(district = factor(district, levels = c("Mataban", "Mahas", "Beledweyne", "Baidoa")))
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district))
+```
+
+## Use direct annotation, remove legend
+
+\tiny
+
+```{r,  fig.width = 6, fig.height = 3}
+line_labels <- pred %>% group_by(district) %>% filter(age_chld == max(age_chld))
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district), family = "") +
+  guides(color = FALSE) # turning off color legend
+```
+
+## Adjust plot limits
+
+\tiny
+
+```{r,  fig.width = 6, fig.height = 3}
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district)) +
+  guides(color = FALSE) +
+  coord_cartesian(ylim = c(-2.5, 1), xlim = c(5, 63))
+```
+
+## Nudge labels
+
+\tiny
+
+```{r,  fig.width = 6, fig.height = 3}
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district), nudge_x = 2) +
+  guides(color = FALSE) +
+  coord_cartesian(ylim = c(-2.5, 1), xlim = c(5, 63))
+```
+
+## Manually adjust labels
+
+\tiny
+
+```{r,  fig.width = 6, fig.height = 3}
+line_labels$predicted[line_labels$district == "Mataban"] <- -.12
+line_labels$predicted[line_labels$district == "Mahas"] <- -.36
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district), nudge_x = 2) +
+  guides(color = FALSE) +  coord_cartesian(ylim = c(-2.5, 1), xlim = c(5, 63))
+```
+
+## Choose theme
+
+\tiny
+
+```{r,  fig.width = 6, fig.height = 3}
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district), nudge_x = 2) +
+  coord_cartesian(ylim = c(-2.5, 1), xlim = c(5, 63)) +
+  guides(color = FALSE) + theme_classic()
+```
+
+## Add horizontal grid lines
+
+\tiny
+
+```{r,  fig.width = 6, fig.height = 3}
+ggplot() +
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district), nudge_x = 2) +
+  coord_cartesian(ylim = c(-2.5, 1), xlim = c(5, 63)) +
+  guides(color = FALSE) + theme_classic() +
+  theme(panel.grid.major.y = element_line(color = 'grey90', linetype = 'dotted'))
+```
+
+## Highlight important values
+
+\tiny
+
+```{r,  fig.width = 6, fig.height = 3}
+ggplot() +
+  annotate('rect', xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = -2, fill = 'grey90') +
+  annotate('text', x = 63, y = -2.05, label = "Stunted", hjust = 1, vjust = 1) + 
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district), nudge_x = 2) +
+  coord_cartesian(ylim = c(-2.5, 1), xlim = c(5, 63)) + guides(color = FALSE) + theme_classic() +
+  theme(panel.grid.major.y = element_line(color = 'grey90', linetype = 'dotted'))
+```
+
+## Adjust scales and axis labels
+
+\scriptsize
+
+Note that we have saved the previous plot as `myplot` and are continuing to add plot elements.
+
+\vspace{10pt}
+
+\tiny
+
+```{r, echo = FALSE}
+myplot <- ggplot() +
+  annotate('rect', xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = -2, fill = 'grey90') +
+  annotate('text', x = 63, y = -2.05, label = "Stunted", hjust=1, vjust=1) + 
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district), nudge_x = 2) +
+  coord_cartesian(ylim = c(-2.5, 1), xlim = c(5, 63)) + guides(color = FALSE) + theme_classic() +
+  theme(panel.grid.major.y = element_line(color = 'grey90', linetype = 'dotted'))
+```
+
+```{r,  fig.width = 6, fig.height = 3}
+myplot +
+  scale_y_continuous("Height-for-age Z score", breaks = seq(-2.5, 1, .5)) +
+  scale_x_continuous("Age (months)", breaks = seq(10, 60, 10))
+```
+
+## Set aspect ratio
+
+\tiny
+
+```{r, echo = FALSE}
+line_labels$age_chld[line_labels$district == "Beledweyne"] <- 56.5
+line_labels$age_chld[line_labels$district == "Mataban"] <- 58
+myplot <- ggplot() +
+  annotate('rect', xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = -2, fill = 'grey90') +
+  annotate('text', x = 63, y = -2.05, label = "Stunted", hjust=1, vjust=1) + 
+  geom_point(dat = pdat, aes(x=age_chld, y=haz, col=district), alpha=.3, shape=1, size=1) +
+  geom_line(dat = pred, aes(x=age_chld, y=predicted, col=district)) +
+  geom_text(dat = line_labels, aes(x=age_chld, y=predicted, label=district), nudge_x = 2) +
+  coord_cartesian(ylim = c(-2.5, 1), xlim = c(5, 63)) + guides(color = FALSE) + theme_classic() +
+  theme(panel.grid.major.y = element_line(color = 'grey90', linetype = 'dotted')) +
+  scale_y_continuous("Height-for-age Z score", breaks = seq(-2.5, 1, .5)) +
+  scale_x_continuous("Age (months)", breaks = seq(10, 60, 10))
+```
+
+```{r,  fig.width = 6, fig.height = 3}
+myplot +
+  coord_fixed(10, expand = FALSE, ylim = c(-2.5, 1), xlim = c(5, 65))
+```
+
+## Customize colors
+
+\tiny
+
+```{r, echo = FALSE}
+myplot <- myplot +
+  coord_fixed(10, expand = FALSE, ylim = c(-2.5, 1), xlim = c(5, 65))
+```
+
+```{r,  fig.width = 6, fig.height = 3}
+myplot +
+  scale_color_brewer(palette = "Dark2")
+```
+
+## Change font
+
+\tiny
+
+```{r, eval = FALSE}
+myplot <- myplot +
+    theme(panel.grid.major.y = element_line(color = 'grey90', linetype = 'dotted'),
+        text=element_text(family="roboto"))
+```
+
+\centering
+
+![](figures/plotviz-font.png)
+
+
+## Remove clutter
+
+\centering
+
+![](figures/plotviz-clean.png)
+
+## Save
+
+\scriptsize
+
+Set height and width as desired for output size. May need to adjust font size as well.
+
+\vspace{10pt}
+
+\tiny
+
+```{r, eval = FALSE}
+p <- ggplot() +
+  annotate('rect', xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = -2, fill = 'grey90') +
+  annotate('text', x = 63, y = -2.05, label = "Stunted",
+           hjust = 1, vjust = 1, fontface = "italic",  size = 10) + 
+  geom_point(dat = pdat, aes(x=age_chld, y = haz, col = district), 
+             alpha = .3, shape = 1, size = 1) +
+  geom_line(dat = pred, aes(x=age_chld, y = predicted, col = district), show.legend = FALSE) +
+  geom_text(dat = line_labels, aes(x = age_chld, y = predicted, label = district),
+            nudge_y = 0.03, family = "roboto",  size = 10) +
+  scale_y_continuous('Height-for-age Z score', breaks = seq(-2.5, 1, .5)) +
+  scale_x_continuous('Age (months)', breaks = seq(10, 60, 10), limits = c(5, 63)) +
+  scale_color_brewer(palette = "Dark2") +
+  guides(color = FALSE) +
+  theme_classic() +
+  theme(panel.grid.major.y = element_line(color = 'grey90', linetype = 'dotted'),
+        text=element_text(size=32,  family="roboto")) +
+  coord_fixed(15, expand = FALSE, ylim = c(-2.5, 1), xlim = c(5, 65))
+
+ggsave(filename = 'p1.png', p, width = 6, height = 4, dpi = 300)
+```
+
+# Tables
+
+## Regression tables
+
+There are several packages in R for producing tables for regression models.
+
+```{r}
+mod1 <- lm(mpg ~ 1, mtcars)
+mod2 <- lm(mpg ~ wt, mtcars)
+mod3 <- lm(mpg ~ wt + hp, mtcars)
+mod4 <- lm(mpg ~ wt + hp + drat, mtcars)
+```
+
+## Broom
+
+Tidy's up regression tables
+
+\tiny
+
+```{r}
+library(broom)
+summary(mod1)
+tidy(mod1)
+#augment(mod1)
+#glance(mod1)
+```
+
+## Saving table as csv
+
+```{r, eval = FALSE}
+tidy_table <- tidy(mod1)
+write.csv(tidy_table, "my-regression.csv", row.names = FALSE)
+```
+
+\makebox[\textwidth]{(\href{https://cran.r-project.org/web/packages/broom/vignettes/broom.html}{cran-broom})}
+
+## Stargazer
+
+\scriptsize
+
+```{r, results='asis', eval = FALSE}
+library(stargazer)
+stargazer(mod1, mod2, title="Results", align=TRUE)
+```
+
+\tiny
+
+\makebox[\textwidth]{(\href{https://cran.r-project.org/web/packages/stargazer/vignettes/stargazer.pdf}{cran-stargazer})}
+
+
+## Adjust covariate labels and spacing
+
+\tiny
+
+```{r, results='asis', eval = FALSE}
+stargazer(mod1, mod2, mod3, title="Regression Results", align=TRUE, 
+          dep.var.labels=c("Overall Rating","High Rating"),
+          covariate.labels=c("Handling of Complaints","No Special Privileges",
+                             "Opportunity to Learn","Performance-Based Raises",
+                             "Too Critical","Advancement"),
+          omit.stat=c("LL","ser","f"), no.space=TRUE)
+```
+
+
+
+# Maps
+
 
